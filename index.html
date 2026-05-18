@@ -1291,13 +1291,24 @@ const scrollBottomBtn=document.getElementById('scrollBottomBtn');
 var _lastSeenTs=0;
 var _lastSeenInserted=false;
 
+function _getLastVisibleMsgTs(){
+  if(typeof _allMsgData!=='object')return 0;
+  var msgs=document.querySelectorAll('.message[data-key]');
+  if(!msgs.length)return 0;
+  var containerRect=messagesDiv.getBoundingClientRect();
+  var lastVisible=null;
+  for(var i=msgs.length-1;i>=0;i--){
+    var r=msgs[i].getBoundingClientRect();
+    if(r.top<containerRect.bottom&&r.bottom>containerRect.top){lastVisible=msgs[i];break}
+  }
+  if(!lastVisible)lastVisible=msgs[msgs.length-1];
+  var key=lastVisible.getAttribute('data-key');
+  return (key&&_allMsgData[key])? (_allMsgData[key].timestamp||0) : 0;
+}
+
 function _saveLastSeen(){
   if(!currentRole)return;
-  var msgs=document.querySelectorAll('.message[data-key]');
-  if(!msgs.length)return;
-  var lastKey=msgs[msgs.length-1].getAttribute('data-key');
-  var ts=0;
-  if(typeof _allMsgData==='object'&&_allMsgData[lastKey])ts=_allMsgData[lastKey].timestamp||0;
+  var ts=_getLastVisibleMsgTs();
   if(ts>0)localStorage.setItem('docosLastSeen_'+currentRole,ts);
 }
 
@@ -1320,9 +1331,10 @@ scrollBottomBtn.addEventListener('click',function(){
   messagesDiv.scrollTo({top:messagesDiv.scrollHeight,behavior:'smooth'});
 });
 
-/* Save last-seen on page hide / unload */
+/* Save last-seen on page hide / unload / tab switch */
 document.addEventListener('visibilitychange',function(){if(document.hidden)_saveLastSeen()});
 window.addEventListener('pagehide',_saveLastSeen);
+window.addEventListener('beforeunload',_saveLastSeen);
 
 /* Lock screen is shown by default */
 
