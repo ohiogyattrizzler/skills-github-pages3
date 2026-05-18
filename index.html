@@ -3383,25 +3383,26 @@ function createWindow(appId){
       var iframeMatch=raw.match(/^<iframe\s[^>]*src\s*=\s*["']([^"']+)["'][^>]*>\s*<\/iframe>\s*$/i);
       if(!iframeMatch){html=_optimizeHtmlForLoading(raw)}
     }
+    /* Helper: write HTML into an about:blank tab using a blob-src iframe (keeps about:blank in URL bar) */
+    function _abWrite(targetWin,htmlStr,title){
+      var blob=new Blob([htmlStr],{type:'text/html'});
+      var bUrl=URL.createObjectURL(blob);
+      targetWin.document.open();
+      targetWin.document.write('<html><head><title>'+(title||'')+'</title></head><body style="margin:0;overflow:hidden;background:#000"><iframe src="'+bUrl+'" style="width:100vw;height:100vh;border:none" allowfullscreen allow="fullscreen;autoplay;clipboard-write;encrypted-media"></iframe></body></html>');
+      targetWin.document.close();
+      setTimeout(function(){URL.revokeObjectURL(bUrl)},10000);
+    }
+    var newWin=window.open('about:blank','_blank');
+    if(!newWin){showToast('Popup blocked — please allow popups for this site.');return}
     if(html){
-      /* Use Blob URL for reliable rendering in the new tab */
-      var blob=new Blob([html],{type:'text/html'});
-      var blobUrl=URL.createObjectURL(blob);
-      var newWin=window.open(blobUrl,'_blank');
-      if(!newWin){showToast('Popup blocked — please allow popups for this site.');URL.revokeObjectURL(blobUrl);return}
-      newWin.addEventListener('load',function(){URL.revokeObjectURL(blobUrl)});
+      _abWrite(newWin,html,def.title);
     }else{
       /* No cached HTML — try iframe document or src fallback */
-      var newWin=window.open('about:blank','_blank');
-      if(!newWin){showToast('Popup blocked — please allow popups for this site.');return}
       try{
         var iframeDoc=iframe.contentDocument||iframe.contentWindow.document;
         var docHtml=iframeDoc.documentElement.outerHTML;
         if(docHtml){
-          var b=new Blob(['<!DOCTYPE html>'+docHtml],{type:'text/html'});
-          var u=URL.createObjectURL(b);
-          newWin.location.href=u;
-          setTimeout(function(){URL.revokeObjectURL(u)},5000);
+          _abWrite(newWin,'<!DOCTYPE html>'+docHtml,def.title);
         }
       }catch(ex){
         /* Fallback: embed iframe with src (for external URL apps) */
@@ -3419,10 +3420,7 @@ function createWindow(appId){
             newWin.document.write('<html><head><title>'+def.title+'</title></head><body style="margin:0;overflow:hidden;background:#000"><iframe src="'+ifrm2[1]+'" style="width:100vw;height:100vh;border:none" allowfullscreen allow="fullscreen;autoplay;clipboard-write;encrypted-media"></iframe></body></html>');
             newWin.document.close();
           }else{
-            var b2=new Blob([raw2],{type:'text/html'});
-            var u2=URL.createObjectURL(b2);
-            newWin.location.href=u2;
-            setTimeout(function(){URL.revokeObjectURL(u2)},5000);
+            _abWrite(newWin,raw2,def.title);
           }
         }
       }
