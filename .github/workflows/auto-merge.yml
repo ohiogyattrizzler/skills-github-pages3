@@ -2,7 +2,7 @@ name: Auto Merge PRs
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, ready_for_review]
 
 permissions:
   contents: write
@@ -16,9 +16,37 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const pr = context.payload.pull_request;
+
+            // Skip draft PRs — they accumulate updates until marked ready
+            if (pr.draft) {
+              console.log('Skipping draft PR #' + pr.number);
+              return;
+            }
+
+            // Merge the PR
             await github.rest.pulls.merge({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
+              pull_number: pr.number,
               merge_method: 'squash'
             });
+            console.log('Merged PR #' + pr.number);
+
+            // If this was a staging → main PR, fast-forward staging to main
+            if (pr.base.ref === 'main' && pr.head.ref === 'staging') {
+              await new Promise(r => setTimeout(r, 3000));
+              const mainRef = await github.rest.git.getRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'heads/main'
+              });
+              await github.rest.git.updateRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'heads/staging',
+                sha: mainRef.data.object.sha,
+                force: true
+              });
+              console.log('Fast-forwarded staging to main');
+            }
