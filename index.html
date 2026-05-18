@@ -2179,7 +2179,8 @@ var _allMsgData={};
 function renderMessages(data){
   _allMsgData=data;
   const scrollPos=messagesDiv.scrollTop,scrollHeight=messagesDiv.scrollHeight,clientHeight=messagesDiv.clientHeight;
-  const wasAtBottom=scrollHeight-scrollPos-clientHeight<60;
+  const wasHidden=scrollHeight===0&&clientHeight===0;
+  const wasAtBottom=wasHidden||scrollHeight-scrollPos-clientHeight<60;
   messagesDiv.innerHTML='';
   const keys=Object.keys(data).sort((a,b)=>(data[a].timestamp||0)-(data[b].timestamp||0));
   var dividerInserted=false;
@@ -2287,6 +2288,8 @@ function renderMessages(data){
     dividerEl.scrollIntoView({behavior:'auto',block:'center'});
   }else if(wasAtBottom){
     messagesDiv.scrollTop=messagesDiv.scrollHeight;
+  }else{
+    messagesDiv.scrollTop=scrollPos;
   }
   _updateScrollBtn();
 }
