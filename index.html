@@ -3376,31 +3376,54 @@ function createWindow(appId){
     if(!winEl)return;
     var iframe=winEl.querySelector('.win-body iframe');
     if(!iframe)return;
-    var newWin=window.open('about:blank','_blank');
-    if(!newWin)return;
-    /* Try to get HTML from cache first (for custom apps using document.write) */
-    var cachedHtml=_htmlCache[appId];
-    if(cachedHtml){
-      newWin.document.open();
-      newWin.document.write(cachedHtml);
-      newWin.document.close();
+    /* Resolve HTML content: cache → customAppsData → iframe document → iframe src */
+    var html=_htmlCache[appId];
+    if(!html&&customAppsData[appId]&&customAppsData[appId].contentHtml){
+      var raw=customAppsData[appId].contentHtml.trim();
+      var iframeMatch=raw.match(/^<iframe\s[^>]*src\s*=\s*["']([^"']+)["'][^>]*>\s*<\/iframe>\s*$/i);
+      if(!iframeMatch){html=_optimizeHtmlForLoading(raw)}
+    }
+    if(html){
+      /* Use Blob URL for reliable rendering in the new tab */
+      var blob=new Blob([html],{type:'text/html'});
+      var blobUrl=URL.createObjectURL(blob);
+      var newWin=window.open(blobUrl,'_blank');
+      if(!newWin){showToast('Popup blocked — please allow popups for this site.');URL.revokeObjectURL(blobUrl);return}
+      newWin.addEventListener('load',function(){URL.revokeObjectURL(blobUrl)});
     }else{
-      /* Try to read content from iframe's document */
+      /* No cached HTML — try iframe document or src fallback */
+      var newWin=window.open('about:blank','_blank');
+      if(!newWin){showToast('Popup blocked — please allow popups for this site.');return}
       try{
         var iframeDoc=iframe.contentDocument||iframe.contentWindow.document;
-        var html=iframeDoc.documentElement.outerHTML;
-        if(html){
-          newWin.document.open();
-          newWin.document.write('<!DOCTYPE html>'+html);
-          newWin.document.close();
+        var docHtml=iframeDoc.documentElement.outerHTML;
+        if(docHtml){
+          var b=new Blob(['<!DOCTYPE html>'+docHtml],{type:'text/html'});
+          var u=URL.createObjectURL(b);
+          newWin.location.href=u;
+          setTimeout(function(){URL.revokeObjectURL(u)},5000);
         }
       }catch(ex){
-        /* Fallback: embed iframe with src */
+        /* Fallback: embed iframe with src (for external URL apps) */
         var src=iframe.src||'';
-        if(src&&src!=='about:blank'){
+        if(src&&src!=='about:blank'&&!src.startsWith('blob:')){
           newWin.document.open();
           newWin.document.write('<html><head><title>'+def.title+'</title></head><body style="margin:0;overflow:hidden;background:#000"><iframe src="'+src+'" style="width:100vw;height:100vh;border:none" allowfullscreen allow="fullscreen;autoplay;clipboard-write;encrypted-media"></iframe></body></html>');
           newWin.document.close();
+        }else if(customAppsData[appId]&&customAppsData[appId].contentHtml){
+          /* Last resort: use raw content from Firebase data */
+          var raw2=customAppsData[appId].contentHtml;
+          var ifrm2=raw2.trim().match(/^<iframe\s[^>]*src\s*=\s*["']([^"']+)["'][^>]*>\s*<\/iframe>\s*$/i);
+          if(ifrm2){
+            newWin.document.open();
+            newWin.document.write('<html><head><title>'+def.title+'</title></head><body style="margin:0;overflow:hidden;background:#000"><iframe src="'+ifrm2[1]+'" style="width:100vw;height:100vh;border:none" allowfullscreen allow="fullscreen;autoplay;clipboard-write;encrypted-media"></iframe></body></html>');
+            newWin.document.close();
+          }else{
+            var b2=new Blob([raw2],{type:'text/html'});
+            var u2=URL.createObjectURL(b2);
+            newWin.location.href=u2;
+            setTimeout(function(){URL.revokeObjectURL(u2)},5000);
+          }
         }
       }
     }
