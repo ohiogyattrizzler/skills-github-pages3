@@ -2281,7 +2281,7 @@ function renderMessages(data){
     }
     messagesDiv.appendChild(wrapper);
   });
-  /* Scroll: if divider was inserted and this is the first render after login, scroll to divider */
+  /* Scroll: if divider was inserted and this is the first render after login or chat reopen, scroll to divider */
   var dividerEl=document.getElementById('newMsgsDivider');
   if(dividerEl&&_lastSeenTs>0&&!_lastSeenInserted){
     _lastSeenInserted=true;
@@ -3568,7 +3568,7 @@ function openApp(appId){
   }
   /* Show the app content */
   var appDiv=document.querySelector('.app');
-  if(appId==='chat'&&appDiv)appDiv.style.display='flex';
+  if(appId==='chat'&&appDiv){appDiv.style.display='flex';_lastSeenTs=_loadLastSeen();_lastSeenInserted=false;if(typeof _allMsgData==='object'&&Object.keys(_allMsgData).length>0){setTimeout(function(){renderMessages(_allMsgData)},50)}}
   createWindow(appId);
 }
 
@@ -3621,8 +3621,9 @@ function closeWindow(winId){
     if(typeof _vcInCall!=='undefined'&&_vcInCall&&typeof _vcHangUp==='function')_vcHangUp();
     if(typeof _vcRemoveIncomingOverlay==='function')_vcRemoveIncomingOverlay();
   }
-  /* For chat app, hide instead of destroy */
+  /* For chat app, save last-seen and hide instead of destroy */
   if(w.appId==='chat'){
+    _saveLastSeen();
     var appDiv=w.el.querySelector('.app');
     if(appDiv){document.body.appendChild(appDiv);appDiv.style.display='none'}
   }
