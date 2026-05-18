@@ -272,6 +272,16 @@ html,body{background:var(--bg);color:var(--text)}
 .message-system .message-text{color:var(--text5)}
 .message-edited{font-size:10px;color:var(--text6);font-style:italic;margin-left:4px}
 
+/* New messages divider */
+.new-msgs-divider{display:flex;align-items:center;gap:10px;margin:12px 0;user-select:none}
+.new-msgs-divider::before,.new-msgs-divider::after{content:'';flex:1;height:1px;background:var(--red)}
+.new-msgs-divider span{font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+
+/* Scroll to bottom button */
+.scroll-bottom-btn{position:absolute;bottom:80px;right:20px;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg4);color:var(--text3);font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:10;transition:all .15s}
+.scroll-bottom-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.scroll-bottom-btn.visible{display:flex}
+
 /* Reply quote */
 .reply-quote{background:var(--bg3);border-left:3px solid var(--accent);border-radius:4px;padding:4px 8px;margin-bottom:5px;font-size:12px;color:var(--text5);cursor:pointer}
 .reply-quote:hover{color:var(--text4)}
@@ -361,7 +371,7 @@ html,body{background:var(--bg);color:var(--text)}
 .panel-body{padding:10px 12px 24px}
 
 /* Chat content wrapper */
-.chat-content{display:flex;flex-direction:column;flex:1;overflow:hidden}
+.chat-content{display:flex;flex-direction:column;flex:1;overflow:hidden;position:relative}
 details{background:var(--bg3);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;padding:10px;transition:background .15s}
 details[open]{background:var(--bg4)}
 summary{cursor:pointer;font-size:13px;font-weight:700;padding:4px 2px;color:var(--accent);user-select:none;display:flex;align-items:center;gap:6px}
@@ -989,6 +999,7 @@ summary{font-size:calc(13px * var(--fs-scale))}
     <div class="online-bar" id="onlineBar"><div class="online-left"><span id="onlineList"></span></div><div class="online-right"><span id="penaltyList"></span></div></div>
     <div class="lock-banner" id="lockBanner"><span class="lock-icon">&#128274;</span> Chat is locked</div>
     <div class="messages" id="messages"></div>
+    <button class="scroll-bottom-btn" id="scrollBottomBtn" title="Scroll to bottom">&#8595;</button>
     <div class="typing-indicator" id="typingIndicator"></div>
     <div class="reply-preview-bar" id="replyPreviewBar">
       <div class="rp-text">Replying to <span class="rp-sender" id="replyPreviewSender"></span>: <span id="replyPreviewText"></span></div>
@@ -1272,6 +1283,46 @@ const messagesDiv=document.getElementById('messages'),messageInput=document.getE
 const sendButton=document.getElementById('sendButton'),muteWarning=document.getElementById('muteWarning');
 const announcementInput=document.getElementById('announcementInput');
 const announcementButton=document.getElementById('announcementButton');
+const scrollBottomBtn=document.getElementById('scrollBottomBtn');
+
+/* ==============================
+   LAST-SEEN & SCROLL-TO-BOTTOM
+   ============================== */
+var _lastSeenTs=0;
+var _lastSeenInserted=false;
+
+function _saveLastSeen(){
+  if(!currentRole)return;
+  var msgs=document.querySelectorAll('.message[data-key]');
+  if(!msgs.length)return;
+  var lastKey=msgs[msgs.length-1].getAttribute('data-key');
+  var ts=0;
+  if(typeof _allMsgData==='object'&&_allMsgData[lastKey])ts=_allMsgData[lastKey].timestamp||0;
+  if(ts>0)localStorage.setItem('docosLastSeen_'+currentRole,ts);
+}
+
+function _loadLastSeen(){
+  if(!currentRole)return 0;
+  return parseInt(localStorage.getItem('docosLastSeen_'+currentRole)||'0',10);
+}
+
+function _clearLastSeenDivider(){_lastSeenInserted=false}
+
+/* Scroll-to-bottom button */
+function _updateScrollBtn(){
+  if(!messagesDiv||!scrollBottomBtn)return;
+  var gap=messagesDiv.scrollHeight-messagesDiv.scrollTop-messagesDiv.clientHeight;
+  if(gap>120)scrollBottomBtn.classList.add('visible');
+  else scrollBottomBtn.classList.remove('visible');
+}
+messagesDiv.addEventListener('scroll',_updateScrollBtn);
+scrollBottomBtn.addEventListener('click',function(){
+  messagesDiv.scrollTo({top:messagesDiv.scrollHeight,behavior:'smooth'});
+});
+
+/* Save last-seen on page hide / unload */
+document.addEventListener('visibilitychange',function(){if(document.hidden)_saveLastSeen()});
+window.addEventListener('pagehide',_saveLastSeen);
 
 /* Lock screen is shown by default */
 
@@ -1701,6 +1752,9 @@ function loginAsRole(role){
       },500);
     }
   });
+  /* Load last-seen timestamp for new-messages divider */
+  _lastSeenTs=_loadLastSeen();
+  _lastSeenInserted=false;
   if(typeof setupUserAppsListener==='function')setupUserAppsListener();
   if(typeof restoreDesktopConfig==='function')restoreDesktopConfig();
   if(typeof _vcListenForIncomingCalls==='function')_vcListenForIncomingCalls();
@@ -1761,6 +1815,8 @@ document.getElementById('lockEyeToggle').addEventListener('click',function(){
 passwordInput.addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 
 function logout(){
+  _saveLastSeen();
+  _lastSeenTs=0;_lastSeenInserted=false;
   _notificationsEnabled=false;
   _notifySW({type:'CLEAR_USER'});
   if(typeof _vcCleanupCall==='function'&&_vcInCall)_vcHangUp();
@@ -2107,12 +2163,24 @@ function buildReactionsRow(msgKey,reactionsData){
   return row;
 }
 
+var _allMsgData={};
 function renderMessages(data){
+  _allMsgData=data;
   const scrollPos=messagesDiv.scrollTop,scrollHeight=messagesDiv.scrollHeight,clientHeight=messagesDiv.clientHeight;
   const wasAtBottom=scrollHeight-scrollPos-clientHeight<60;
   messagesDiv.innerHTML='';
   const keys=Object.keys(data).sort((a,b)=>(data[a].timestamp||0)-(data[b].timestamp||0));
+  var dividerInserted=false;
+  var savedTs=_lastSeenTs;
   keys.forEach(key=>{
+    var msgTs=data[key].timestamp||0;
+    /* Insert "new messages" divider */
+    if(savedTs>0&&!dividerInserted&&msgTs>savedTs){
+      var divider=document.createElement('div');divider.className='new-msgs-divider';divider.id='newMsgsDivider';
+      divider.innerHTML='<span>New Messages</span>';
+      messagesDiv.appendChild(divider);
+      dividerInserted=true;
+    }
     const msg=data[key];
     const wrapper=document.createElement('div');wrapper.className='message';wrapper.setAttribute('data-key',key);
     const isAdminMsg=msg.senderRole==='Admin'||adminUsers[msg.senderRole]===true;
@@ -2200,7 +2268,15 @@ function renderMessages(data){
     }
     messagesDiv.appendChild(wrapper);
   });
-  if(wasAtBottom)messagesDiv.scrollTop=messagesDiv.scrollHeight;
+  /* Scroll: if divider was inserted and this is the first render after login, scroll to divider */
+  var dividerEl=document.getElementById('newMsgsDivider');
+  if(dividerEl&&_lastSeenTs>0&&!_lastSeenInserted){
+    _lastSeenInserted=true;
+    dividerEl.scrollIntoView({behavior:'auto',block:'center'});
+  }else if(wasAtBottom){
+    messagesDiv.scrollTop=messagesDiv.scrollHeight;
+  }
+  _updateScrollBtn();
 }
 
 /* ==============================
