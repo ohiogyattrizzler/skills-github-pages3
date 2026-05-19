@@ -276,6 +276,8 @@ html,body{background:var(--bg);color:var(--text)}
 .new-msgs-divider{display:flex;align-items:center;gap:10px;margin:12px 0;user-select:none}
 .new-msgs-divider::before,.new-msgs-divider::after{content:'';flex:1;height:1px;background:var(--red)}
 .new-msgs-divider span{font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
+.new-msgs-divider .dismiss-btn{background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px;opacity:.6;transition:opacity .15s}
+.new-msgs-divider .dismiss-btn:hover{opacity:1}
 
 /* Scroll to bottom button */
 .scroll-bottom-btn{position:absolute;bottom:80px;right:20px;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg4);color:var(--text3);font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:10;transition:all .15s}
@@ -2196,6 +2198,9 @@ function renderMessages(data){
     if(savedTs>0&&!dividerInserted&&msgTs>savedTs){
       var divider=document.createElement('div');divider.className='new-msgs-divider';divider.id='newMsgsDivider';
       divider.innerHTML='<span>New Messages</span>';
+      var dismissBtn=document.createElement('button');dismissBtn.className='dismiss-btn';dismissBtn.innerHTML='&times;';dismissBtn.title='Dismiss';
+      dismissBtn.onclick=function(){divider.remove();var allKeys=Object.keys(_allMsgData);var maxTs=0;allKeys.forEach(function(k){var t=_allMsgData[k].timestamp||0;if(t>maxTs)maxTs=t});if(maxTs>0&&currentRole){localStorage.setItem('docosLastSeen_'+currentRole,maxTs);_lastSeenTs=maxTs}};
+      divider.appendChild(dismissBtn);
       messagesDiv.appendChild(divider);
       dividerInserted=true;
     }
@@ -3573,7 +3578,15 @@ function openApp(appId){
   }
   /* Show the app content */
   var appDiv=document.querySelector('.app');
-  if(appId==='chat'&&appDiv){appDiv.style.display='flex';_chatIsOpen=true;_lastSeenTs=_loadLastSeen();_lastSeenInserted=false;if(typeof _allMsgData==='object'&&Object.keys(_allMsgData).length>0){requestAnimationFrame(function(){renderMessages(_allMsgData)})}}
+  if(appId==='chat'&&appDiv){
+    appDiv.style.display='flex';_chatIsOpen=true;_lastSeenTs=_loadLastSeen();_lastSeenInserted=false;
+    if(typeof _allMsgData==='object'&&Object.keys(_allMsgData).length>0){
+      requestAnimationFrame(function(){
+        renderMessages(_allMsgData);
+        if(!document.getElementById('newMsgsDivider')){messagesDiv.scrollTop=messagesDiv.scrollHeight}
+      });
+    }
+  }
   createWindow(appId);
 }
 
