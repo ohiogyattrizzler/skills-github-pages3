@@ -2195,7 +2195,7 @@ function renderMessages(data){
   keys.forEach(key=>{
     var msgTs=data[key].timestamp||0;
     /* Insert "new messages" divider */
-    if(savedTs>0&&!dividerInserted&&!_lastSeenInserted&&msgTs>savedTs){
+    if(_chatIsOpen&&savedTs>0&&!dividerInserted&&!_lastSeenInserted&&msgTs>savedTs){
       var divider=document.createElement('div');divider.className='new-msgs-divider';divider.id='newMsgsDivider';
       divider.innerHTML='<span>New Messages</span>';
       var dismissBtn=document.createElement('button');dismissBtn.className='dismiss-btn';dismissBtn.innerHTML='&times;';dismissBtn.title='Dismiss';
@@ -2294,14 +2294,14 @@ function renderMessages(data){
   /* Scroll: if divider was inserted and this is the first render after login or chat reopen, scroll to divider */
   var dividerEl=document.getElementById('newMsgsDivider');
   if(dividerEl&&_lastSeenTs>0&&!_lastSeenInserted){
-    _lastSeenInserted=true;var _maxTs=0;keys.forEach(function(k){var t=data[k].timestamp||0;if(t>_maxTs)_maxTs=t});if(_maxTs>0&&currentRole){localStorage.setItem('docosLastSeen_'+currentRole,_maxTs);_lastSeenTs=_maxTs}
+    _lastSeenInserted=true;
     dividerEl.scrollIntoView({behavior:'auto',block:'center'});setTimeout(function(){var d=document.getElementById('newMsgsDivider');if(d)d.scrollIntoView({behavior:'auto',block:'center'})},100);
   }else if(wasAtBottom){
     messagesDiv.scrollTop=messagesDiv.scrollHeight;
   }else{
     messagesDiv.scrollTop=scrollPos;
   }
-  _lastSeenInserted=true;_updateScrollBtn();
+  if(_chatIsOpen)_lastSeenInserted=true;_updateScrollBtn();
 }
 
 /* ==============================
