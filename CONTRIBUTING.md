@@ -25,20 +25,21 @@ This repo uses a **staging branch** system to batch updates before publishing to
 4. Push to `origin staging`: `git push origin staging`
 5. Do NOT push to `main`. Ever. All changes go through `staging`.
 
-### Step 2: Deploy a Preview Site
+### Step 2: Deploy to the Preview Site
 
-After pushing to staging, **always** deploy a preview so the user can test before publishing:
+After pushing to staging, **always** deploy a preview so the user can test before publishing.
 
-1. Copy the deployable files (`index.html`, `favicon.jpg`) to a temporary directory.
-2. Use the `deploy` tool with `command="frontend"` and the temp directory to deploy a preview.
+**The preview site directory is `/home/ubuntu/code-deploy-app`.** Always deploy from this path so the URL stays consistent.
+
+1. Copy the deployable files to the preview directory:
+   ```
+   mkdir -p /home/ubuntu/code-deploy-app
+   cp index.html favicon.jpg /home/ubuntu/code-deploy-app/
+   ```
+2. Use the `deploy` tool with `command="frontend"` and `dir="/home/ubuntu/code-deploy-app"` to deploy.
 3. Share the preview URL with the user so they can review and test the changes.
 
-Example:
-```
-mkdir -p /tmp/deploy-preview
-cp index.html favicon.jpg /tmp/deploy-preview/
-# Then use the deploy tool: command="frontend", dir="/tmp/deploy-preview"
-```
+**Note:** Each deploy generates a new URL. Always share the new URL with the user after deploying.
 
 ### Step 3: Wait for User Feedback
 
