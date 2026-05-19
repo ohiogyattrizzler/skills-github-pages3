@@ -1290,6 +1290,7 @@ const scrollBottomBtn=document.getElementById('scrollBottomBtn');
    ============================== */
 var _lastSeenTs=0;
 var _lastSeenInserted=false;
+var _chatIsOpen=false;
 
 function _getLastVisibleMsgTs(){
   if(typeof _allMsgData!=='object')return 0;
@@ -1306,10 +1307,14 @@ function _getLastVisibleMsgTs(){
   return (key&&_allMsgData[key])? (_allMsgData[key].timestamp||0) : 0;
 }
 
-function _saveLastSeen(){
+function _forceSaveLastSeen(){
   if(!currentRole)return;
   var ts=_getLastVisibleMsgTs();
   if(ts>0)localStorage.setItem('docosLastSeen_'+currentRole,ts);
+}
+function _saveLastSeen(){
+  if(!_chatIsOpen)return;
+  _forceSaveLastSeen();
 }
 
 function _loadLastSeen(){
@@ -1827,7 +1832,7 @@ document.getElementById('lockEyeToggle').addEventListener('click',function(){
 passwordInput.addEventListener('keydown',e=>{if(e.key==='Enter')login()});
 
 function logout(){
-  _saveLastSeen();
+  _forceSaveLastSeen();_chatIsOpen=false;
   _lastSeenTs=0;_lastSeenInserted=false;
   _notificationsEnabled=false;
   _notifySW({type:'CLEAR_USER'});
@@ -2285,7 +2290,7 @@ function renderMessages(data){
   var dividerEl=document.getElementById('newMsgsDivider');
   if(dividerEl&&_lastSeenTs>0&&!_lastSeenInserted){
     _lastSeenInserted=true;
-    dividerEl.scrollIntoView({behavior:'auto',block:'center'});
+    dividerEl.scrollIntoView({behavior:'auto',block:'center'});setTimeout(function(){var d=document.getElementById('newMsgsDivider');if(d)d.scrollIntoView({behavior:'auto',block:'center'})},100);
   }else if(wasAtBottom){
     messagesDiv.scrollTop=messagesDiv.scrollHeight;
   }else{
@@ -3568,7 +3573,7 @@ function openApp(appId){
   }
   /* Show the app content */
   var appDiv=document.querySelector('.app');
-  if(appId==='chat'&&appDiv){appDiv.style.display='flex';_lastSeenTs=_loadLastSeen();_lastSeenInserted=false;if(typeof _allMsgData==='object'&&Object.keys(_allMsgData).length>0){setTimeout(function(){renderMessages(_allMsgData)},50)}}
+  if(appId==='chat'&&appDiv){appDiv.style.display='flex';_chatIsOpen=true;_lastSeenTs=_loadLastSeen();_lastSeenInserted=false;if(typeof _allMsgData==='object'&&Object.keys(_allMsgData).length>0){requestAnimationFrame(function(){renderMessages(_allMsgData)})}}
   createWindow(appId);
 }
 
@@ -3623,7 +3628,7 @@ function closeWindow(winId){
   }
   /* For chat app, save last-seen and hide instead of destroy */
   if(w.appId==='chat'){
-    _saveLastSeen();
+    _forceSaveLastSeen();_chatIsOpen=false;
     var appDiv=w.el.querySelector('.app');
     if(appDiv){document.body.appendChild(appDiv);appDiv.style.display='none'}
   }
