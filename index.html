@@ -278,6 +278,11 @@ html,body{background:var(--bg);color:var(--text)}
 .new-msgs-divider span{font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
 .new-msgs-divider .dismiss-btn{background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px;opacity:.6;transition:opacity .15s}
 .new-msgs-divider .dismiss-btn:hover{opacity:1}
+/* Unread badge */
+.unread-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#f33;color:#fff;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box;line-height:1;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.unread-badge.show{display:flex}
+.desktop-icon{position:relative}
+.taskbar-item{position:relative}
 
 /* Scroll to bottom button */
 .scroll-bottom-btn{position:absolute;bottom:80px;right:20px;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--bg4);color:var(--text3);font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:10;transition:all .15s}
@@ -943,6 +948,7 @@ summary{font-size:calc(13px * var(--fs-scale))}
     <div class="desktop-icons" id="desktopIcons">
       <div class="desktop-icon" data-app="chat" ondblclick="openApp('chat')" onclick="if(window.innerWidth<=768)openApp('chat')" style="left:10px;top:10px">
         <div class="icon-img" style="background:linear-gradient(135deg,#0af,#08c)">&#128172;</div>
+        <span class="unread-badge" id="chatUnreadBadge"></span>
         <div class="icon-label" id="iconLabel-chat">Chat</div>
       </div>
       <div class="desktop-icon" data-app="settings" ondblclick="openApp('settings')" onclick="if(window.innerWidth<=768)openApp('settings')" style="left:10px;top:110px">
@@ -1325,6 +1331,20 @@ function _loadLastSeen(){
 }
 
 function _clearLastSeenDivider(){_lastSeenInserted=false}
+
+function _updateUnreadBadge(){
+  var badge=document.getElementById('chatUnreadBadge');
+  if(!badge)return;
+  var ts=_loadLastSeen();
+  if(!ts||!_allMsgData||typeof _allMsgData!=='object'){badge.classList.remove('show');badge.textContent='';return}
+  var count=0;
+  Object.keys(_allMsgData).forEach(function(k){if((_allMsgData[k].timestamp||0)>ts)count++});
+  if(count>0&&!_chatIsOpen){badge.textContent=count>99?'99+':count;badge.classList.add('show')}
+  else{badge.classList.remove('show');badge.textContent=''}
+  /* Also update taskbar badge */
+  var tbBadges=document.querySelectorAll('.taskbar-item .unread-badge');
+  tbBadges.forEach(function(b){if(count>0&&!_chatIsOpen){b.textContent=count>99?'99+':count;b.classList.add('show')}else{b.classList.remove('show');b.textContent=''}})
+}
 
 /* Scroll-to-bottom button */
 function _updateScrollBtn(){
@@ -2301,7 +2321,7 @@ function renderMessages(data){
   }else{
     messagesDiv.scrollTop=scrollPos;
   }
-  if(_chatIsOpen)_lastSeenInserted=true;_updateScrollBtn();
+  if(_chatIsOpen)_lastSeenInserted=true;_updateScrollBtn();_updateUnreadBadge();
 }
 
 /* ==============================
@@ -3579,7 +3599,7 @@ function openApp(appId){
   /* Show the app content */
   var appDiv=document.querySelector('.app');
   if(appId==='chat'&&appDiv){
-    appDiv.style.display='flex';_chatIsOpen=true;_lastSeenTs=_loadLastSeen();_lastSeenInserted=false;
+    appDiv.style.display='flex';_chatIsOpen=true;_lastSeenTs=_loadLastSeen();_lastSeenInserted=false;_updateUnreadBadge();
     if(typeof _allMsgData==='object'&&Object.keys(_allMsgData).length>0){
       requestAnimationFrame(function(){
         renderMessages(_allMsgData);
@@ -3641,7 +3661,7 @@ function closeWindow(winId){
   }
   /* For chat app, save last-seen and hide instead of destroy */
   if(w.appId==='chat'){
-    _forceSaveLastSeen();_chatIsOpen=false;
+    _forceSaveLastSeen();_chatIsOpen=false;_updateUnreadBadge();
     var appDiv=w.el.querySelector('.app');
     if(appDiv){document.body.appendChild(appDiv);appDiv.style.display='none'}
   }
@@ -3670,13 +3690,14 @@ function updateTaskbar(){
     item.appendChild(iconSpan);
     var textSpan=document.createElement('span');textSpan.textContent=w.title;
     item.appendChild(textSpan);
+    if(w.appId==='chat'){var tbBadge=document.createElement('span');tbBadge.className='unread-badge';item.appendChild(tbBadge)}
     item.onclick=function(){
       if(w.minimized)restoreWindow(id);
       else if(id===activeWindowId)minimizeWindow(id);
       else focusWindow(id);
     };
     container.appendChild(item);
-  });
+  });if(typeof _updateUnreadBadge==='function')_updateUnreadBadge();
 }
 
 /* Drag windows */
