@@ -2294,7 +2294,7 @@ function renderMessages(data){
   /* Scroll: if divider was inserted and this is the first render after login or chat reopen, scroll to divider */
   var dividerEl=document.getElementById('newMsgsDivider');
   if(dividerEl&&_lastSeenTs>0&&!_lastSeenInserted){
-    _lastSeenInserted=true;
+    _lastSeenInserted=true;var _maxTs=0;keys.forEach(function(k){var t=data[k].timestamp||0;if(t>_maxTs)_maxTs=t});if(_maxTs>0&&currentRole){localStorage.setItem('docosLastSeen_'+currentRole,_maxTs);_lastSeenTs=_maxTs}
     dividerEl.scrollIntoView({behavior:'auto',block:'center'});setTimeout(function(){var d=document.getElementById('newMsgsDivider');if(d)d.scrollIntoView({behavior:'auto',block:'center'})},100);
   }else if(wasAtBottom){
     messagesDiv.scrollTop=messagesDiv.scrollHeight;
