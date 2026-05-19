@@ -2195,7 +2195,7 @@ function renderMessages(data){
   keys.forEach(key=>{
     var msgTs=data[key].timestamp||0;
     /* Insert "new messages" divider */
-    if(savedTs>0&&!dividerInserted&&msgTs>savedTs){
+    if(savedTs>0&&!dividerInserted&&!_lastSeenInserted&&msgTs>savedTs){
       var divider=document.createElement('div');divider.className='new-msgs-divider';divider.id='newMsgsDivider';
       divider.innerHTML='<span>New Messages</span>';
       var dismissBtn=document.createElement('button');dismissBtn.className='dismiss-btn';dismissBtn.innerHTML='&times;';dismissBtn.title='Dismiss';
