@@ -4511,7 +4511,13 @@ function renderUserMgmt(){
       if(!changed){showToast('Nothing to change');return}
       db.ref().update(updates).then(()=>showToast('Updated '+(newName||roleDisplayNames[r]||r))).catch(console.error);
     }})(role,passcode,unameInp,nameInp,passInp,roleSelect,curPerm);
-    editRow.appendChild(unameInp);editRow.appendChild(nameInp);editRow.appendChild(passInp);editRow.appendChild(roleSelect);editRow.appendChild(saveBtn);item.appendChild(editRow);div.appendChild(item);
+    var rmUnameBtn=document.createElement('button');rmUnameBtn.className='small-btn';rmUnameBtn.style.cssText='background:none;color:#ff9800;border:1px solid rgba(255,152,0,.3);font-size:10px;padding:3px 8px;border-radius:4px;cursor:pointer;font-weight:600;transition:all .15s;white-space:nowrap';rmUnameBtn.textContent='Remove @';rmUnameBtn.title='Remove username';
+    rmUnameBtn.onmouseover=function(){this.style.background='#ff9800';this.style.color='#fff';this.style.borderColor='#ff9800'};rmUnameBtn.onmouseout=function(){this.style.background='none';this.style.color='#ff9800';this.style.borderColor='rgba(255,152,0,.3)'};
+    rmUnameBtn.onclick=(function(r){return function(){
+      var uname=usernames[r];if(!uname){showToast('No username to remove');return}
+      db.ref().update({['/usernames/'+r]:null,['/usedUsernames/'+uname.toLowerCase()]:null}).then(function(){showToast('Removed username @'+uname+' from '+(roleDisplayNames[r]||r));logAudit('edit','Removed username @'+uname+' from '+(roleDisplayNames[r]||r))}).catch(console.error);
+    }})(role);
+    editRow.appendChild(unameInp);editRow.appendChild(nameInp);editRow.appendChild(passInp);editRow.appendChild(roleSelect);editRow.appendChild(saveBtn);editRow.appendChild(rmUnameBtn);item.appendChild(editRow);div.appendChild(item);
   });
 }
 document.getElementById('addUserButton').addEventListener('click',function(){
