@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>De Dee's Dairy | Niagara Falls' Legendary Ice Cream</title>
+  <meta name="description" content="De Dee's Dairy - Niagara Falls' beloved ice cream parlor since the old days. Generous portions, 50+ flavors, and the friendliest staff around. Cash only. 8715 Niagara Falls Blvd.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cream: #FFF8F0;
+      --pink: #F9A8C9;
+      --pink-dark: #E87BAD;
+      --brown: #5C3D2E;
+      --brown-light: #8B6914;
+      --cow-white: #FFFFFF;
+      --cow-black: #2D2D2D;
+      --caramel: #C68E42;
+      --mint: #A8E6CF;
+      --strawberry: #FF6B8A;
+      --chocolate: #6B3A2A;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--cream);
+      color: var(--brown);
+      overflow-x: hidden;
+    }
+
+    /* COW SPOT PATTERN */
+    .cow-spots {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.03;
+      background-image:
+        radial-gradient(ellipse 120px 90px at 10% 15%, var(--cow-black) 60%, transparent 61%),
+        radial-gradient(ellipse 80px 110px at 85% 8%, var(--cow-black) 60%, transparent 61%),
+        radial-gradient(ellipse 150px 80px at 50% 50%, var(--cow-black) 60%, transparent 61%),
+        radial-gradient(ellipse 90px 120px at 20% 80%, var(--cow-black) 60%, transparent 61%),
+        radial-gradient(ellipse 110px 70px at 75% 70%, var(--cow-black) 60%, transparent 61%),
+        radial-gradient(ellipse 70px 100px at 40% 30%, var(--cow-black) 60%, transparent 61%),
+        radial-gradient(ellipse 130px 90px at 90% 45%, var(--cow-black) 60%, transparent 61%),
+        radial-gradient(ellipse 100px 80px at 60% 90%, var(--cow-black) 60%, transparent 61%);
+    }
+
+    /* HEADER / HERO */
+    header {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(145deg, #2D2D2D 0%, #1a1a1a 50%, #2D2D2D 100%);
+      overflow: hidden;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image:
+        radial-gradient(ellipse 200px 150px at 5% 20%, rgba(255,255,255,0.08) 60%, transparent 61%),
+        radial-gradient(ellipse 180px 220px at 80% 10%, rgba(255,255,255,0.08) 60%, transparent 61%),
+        radial-gradient(ellipse 250px 130px at 45% 60%, rgba(255,255,255,0.06) 60%, transparent 61%),
+        radial-gradient(ellipse 160px 200px at 15% 75%, rgba(255,255,255,0.07) 60%, transparent 61%),
+        radial-gradient(ellipse 190px 140px at 70% 80%, rgba(255,255,255,0.08) 60%, transparent 61%),
+        radial-gradient(ellipse 220px 170px at 90% 50%, rgba(255,255,255,0.06) 60%, transparent 61%),
+        radial-gradient(ellipse 140px 180px at 35% 30%, rgba(255,255,255,0.07) 60%, transparent 61%);
+      z-index: 0;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      padding: 2rem;
+    }
+
+    .cow-emoji {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      animation: moo 3s ease-in-out infinite;
+    }
+
+    @keyframes moo {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.1) rotate(-5deg); }
+      75% { transform: scale(1.1) rotate(5deg); }
+    }
+
+    .hero-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(3rem, 8vw, 6rem);
+      color: var(--cow-white);
+      text-shadow: 3px 3px 0 var(--pink), 6px 6px 0 rgba(0,0,0,0.2);
+      line-height: 1.1;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+      color: var(--pink);
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-tagline {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: rgba(255,255,255,0.85);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+      line-height: 1.6;
+    }
+
+    .hero-rating {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px;
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    .stars { color: #FFD700; font-size: 1.3rem; }
+
+    .cta-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 1.05rem;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--pink), var(--pink-dark));
+      color: white;
+      box-shadow: 0 4px 20px rgba(249,168,201,0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 30px rgba(249,168,201,0.6);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.25);
+      transform: translateY(-3px);
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      animation: bounce 2s infinite;
+      color: rgba(255,255,255,0.5);
+      font-size: 1.5rem;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-10px); }
+    }
+
+    /* NAV BAR */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--cow-white);
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      padding: 1rem 2rem;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: var(--brown);
+      font-weight: 700;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: color 0.3s;
+      position: relative;
+    }
+
+    nav a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 3px;
+      background: var(--pink);
+      border-radius: 2px;
+      transition: width 0.3s;
+    }
+
+    nav a:hover { color: var(--pink-dark); }
+    nav a:hover::after { width: 100%; }
+
+    /* SECTIONS */
+    section {
+      padding: 5rem 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(2rem, 5vw, 3rem);
+      text-align: center;
+      margin-bottom: 0.5rem;
+      color: var(--brown);
+    }
+
+    .section-subtitle {
+      text-align: center;
+      color: var(--brown);
+      opacity: 0.7;
+      font-size: 1.1rem;
+      margin-bottom: 3rem;
+    }
+
+    /* ABOUT */
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+    }
+
+    .about-text p {
+      font-size: 1.1rem;
+      line-height: 1.8;
+      margin-bottom: 1.5rem;
+    }
+
+    .about-highlights {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .highlight-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 16px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      transition: transform 0.3s;
+    }
+
+    .highlight-card:hover { transform: translateY(-5px); }
+
+    .highlight-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .highlight-card .label { font-weight: 800; font-size: 1.1rem; }
+    .highlight-card .detail { font-size: 0.85rem; opacity: 0.7; margin-top: 0.25rem; }
+
+    .about-image {
+      position: relative;
+    }
+
+    .about-image img {
+      width: 100%;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+      object-fit: cover;
+      aspect-ratio: 4/5;
+    }
+
+    .about-image::before {
+      content: '';
+      position: absolute;
+      top: -15px;
+      right: -15px;
+      width: 100%;
+      height: 100%;
+      border: 4px solid var(--pink);
+      border-radius: 24px;
+      z-index: -1;
+    }
+
+    /* GALLERY */
+    .gallery-section {
+      background: linear-gradient(135deg, var(--cow-black) 0%, #1a1a1a 100%);
+      padding: 5rem 2rem;
+      max-width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gallery-section::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image:
+        radial-gradient(ellipse 180px 140px at 8% 15%, rgba(255,255,255,0.05) 60%, transparent 61%),
+        radial-gradient(ellipse 150px 190px at 85% 20%, rgba(255,255,255,0.05) 60%, transparent 61%),
+        radial-gradient(ellipse 200px 120px at 50% 75%, rgba(255,255,255,0.04) 60%, transparent 61%);
+    }
+
+    .gallery-section .section-title { color: white; }
+    .gallery-section .section-subtitle { color: rgba(255,255,255,0.7); }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .gallery-item {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      aspect-ratio: 1;
+      cursor: pointer;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      transition: transform 0.4s ease;
+    }
+
+    .gallery-item:hover { transform: scale(1.03); }
+
+    .gallery-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+
+    .gallery-item:hover img { transform: scale(1.1); }
+
+    .gallery-item .overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 1.5rem;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      transform: translateY(100%);
+      transition: transform 0.4s ease;
+    }
+
+    .gallery-item:hover .overlay { transform: translateY(0); }
+
+    .gallery-item:nth-child(1) { grid-row: span 2; aspect-ratio: auto; }
+
+    /* REVIEWS */
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+    }
+
+    .review-card {
+      background: white;
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 4px 25px rgba(0,0,0,0.06);
+      position: relative;
+      transition: transform 0.3s;
+    }
+
+    .review-card:hover { transform: translateY(-5px); }
+
+    .review-card::before {
+      content: '"';
+      font-family: 'Fredoka One', cursive;
+      font-size: 5rem;
+      color: var(--pink);
+      opacity: 0.2;
+      position: absolute;
+      top: 10px;
+      left: 20px;
+      line-height: 1;
+    }
+
+    .review-stars {
+      color: #FFD700;
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+
+    .review-text {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      margin-bottom: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .review-author {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .review-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--pink), var(--caramel));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+
+    .review-name { font-weight: 800; }
+    .review-badge { font-size: 0.8rem; opacity: 0.6; }
+
+    /* INFO SECTION */
+    .info-section {
+      background: white;
+      border-radius: 30px;
+      padding: 4rem 3rem;
+      margin: 3rem auto;
+      max-width: 1200px;
+      box-shadow: 0 10px 50px rgba(0,0,0,0.06);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2.5rem;
+    }
+
+    .info-block h3 {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      color: var(--pink-dark);
+    }
+
+    .info-block p, .info-block li {
+      font-size: 1.05rem;
+      line-height: 1.8;
+    }
+
+    .info-block ul {
+      list-style: none;
+    }
+
+    .info-block ul li::before {
+      content: '🐄 ';
+    }
+
+    .cash-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, #FFD700, #FFA500);
+      color: var(--brown);
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px;
+      font-weight: 800;
+      margin-top: 1rem;
+      font-size: 1rem;
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--cow-black);
+      color: white;
+      text-align: center;
+      padding: 3rem 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    footer::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--pink), var(--caramel), var(--mint), var(--strawberry), var(--pink));
+    }
+
+    .footer-brand {
+      font-family: 'Fredoka One', cursive;
+      font-size: 1.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .footer-address {
+      opacity: 0.7;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .footer-social {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .footer-social a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      text-decoration: none;
+      font-size: 1.2rem;
+      transition: all 0.3s;
+    }
+
+    .footer-social a:hover {
+      background: var(--pink);
+      transform: translateY(-3px);
+    }
+
+    .footer-copy {
+      opacity: 0.5;
+      font-size: 0.85rem;
+    }
+
+    /* COW DIVIDER */
+    .cow-divider {
+      text-align: center;
+      font-size: 2rem;
+      padding: 1rem;
+      letter-spacing: 1rem;
+      opacity: 0.3;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .about-grid { grid-template-columns: 1fr; }
+      .about-image { order: -1; }
+      .about-image::before { display: none; }
+      .info-section { padding: 2.5rem 1.5rem; margin: 1.5rem; }
+      nav { gap: 1rem; padding: 0.75rem 1rem; }
+      nav a { font-size: 0.8rem; }
+      .gallery-item:nth-child(1) { grid-row: span 1; aspect-ratio: 1; }
+      section { padding: 3rem 1.5rem; }
+    }
+
+    /* ANIMATIONS */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.6s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<div class="cow-spots"></div>
+
+<!-- HERO -->
+<header>
+  <div class="hero-content">
+    <div class="cow-emoji">🐄</div>
+    <h1 class="hero-title">De Dee's Dairy</h1>
+    <p class="hero-subtitle">Niagara Falls' Legendary Ice Cream</p>
+    <p class="hero-tagline">Storied, old-school ice cream parlor serving up the most generous scoops in Western New York. Over 50 flavors of Perry's hand-dipped ice cream, creamy soft serve, towering sundaes & more.</p>
+    <div class="hero-rating">
+      <span class="stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
+      <span>4.8 &mdash; 2,033 Reviews</span>
+    </div>
+    <div class="cta-buttons">
+      <a href="#menu" class="btn btn-primary">See Our Treats</a>
+      <a href="https://maps.google.com/?q=De+Dee's+Dairy+8715+Niagara+Falls+Blvd" target="_blank" class="btn btn-secondary">Get Directions</a>
+    </div>
+  </div>
+  <div class="scroll-hint">&#9660;</div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a href="#about">About</a>
+  <a href="#menu">Our Treats</a>
+  <a href="#reviews">Reviews</a>
+  <a href="#visit">Visit Us</a>
+</nav>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="about-grid">
+    <div class="about-text fade-in">
+      <h2 class="section-title" style="text-align:left;">A Niagara Falls<br>Tradition</h2>
+      <p>De Dee's Dairy is the kind of ice cream shop people drive across state lines for. Nestled on Niagara Falls Boulevard, we've been scooping up smiles for generations with our legendary portions, unbeatable prices, and the warmest welcome in town.</p>
+      <p>We proudly serve <strong>Perry's Ice Cream</strong> &mdash; New York's finest &mdash; with over 50 hand-dipped flavors, velvety soft serve, towering banana splits, decadent sundaes, thick milkshakes, and our famous ice cream flights. Every scoop is served fresh, every portion is ridiculous, and every visit feels like coming home.</p>
+      <div class="about-highlights">
+        <div class="highlight-card">
+          <div class="icon">🍦</div>
+          <div class="label">50+ Flavors</div>
+          <div class="detail">Perry's hand-dipped</div>
+        </div>
+        <div class="highlight-card">
+          <div class="icon">🤯</div>
+          <div class="label">Huge Portions</div>
+          <div class="detail">"Small" = large anywhere else</div>
+        </div>
+        <div class="highlight-card">
+          <div class="icon">💰</div>
+          <div class="label">Best Prices</div>
+          <div class="detail">Unbeatable value</div>
+        </div>
+        <div class="highlight-card">
+          <div class="icon">💵</div>
+          <div class="label">Cash Only</div>
+          <div class="detail">ATM inside</div>
+        </div>
+      </div>
+    </div>
+    <div class="about-image fade-in">
+      <img src="images/soft-serve-cone.png" alt="De Dee's signature tall soft serve cone" loading="lazy">
+    </div>
+  </div>
+</section>
+
+<div class="cow-divider">🐄 🐄 🐄</div>
+
+<!-- GALLERY / MENU -->
+<section class="gallery-section" id="menu">
+  <h2 class="section-title">Our Legendary Treats</h2>
+  <p class="section-subtitle">Hand-dipped, piled high, and made with love</p>
+  <div class="gallery-grid">
+    <div class="gallery-item">
+      <img src="images/sundae-cup.png" alt="Loaded sundae cup with nuts and chocolate" loading="lazy">
+      <div class="overlay">Loaded Sundae Cup</div>
+    </div>
+    <div class="gallery-item">
+      <img src="images/banana-split-chocolate.png" alt="Classic banana split with hot fudge and whipped cream" loading="lazy">
+      <div class="overlay">Classic Banana Split</div>
+    </div>
+    <div class="gallery-item">
+      <img src="images/banana-split-caramel.png" alt="Banana split with caramel and whipped cream" loading="lazy">
+      <div class="overlay">Banana Split Deluxe</div>
+    </div>
+    <div class="gallery-item">
+      <img src="images/sundae-caramel.png" alt="Caramel and hot fudge sundae with whipped cream" loading="lazy">
+      <div class="overlay">Caramel Hot Fudge Sundae</div>
+    </div>
+    <div class="gallery-item">
+      <img src="images/mint-chip-bowl.png" alt="Overflowing mint chocolate chip in a cup with upside down cone" loading="lazy">
+      <div class="overlay">Mint Chocolate Chip Overload</div>
+    </div>
+    <div class="gallery-item">
+      <img src="images/mint-chip-container.png" alt="Mint chip ice cream in a container" loading="lazy">
+      <div class="overlay">Mint Chip To-Go</div>
+    </div>
+  </div>
+</section>
+
+<!-- REVIEWS -->
+<section id="reviews">
+  <h2 class="section-title">What People Are Saying</h2>
+  <p class="section-subtitle">98% of 2,033 reviewers recommend De Dee's Dairy</p>
+  <div class="reviews-grid">
+
+    <div class="review-card fade-in">
+      <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <p class="review-text">Amazing!! Large scoops of hand dipped ice cream with numerous flavor options! This place is DELICIOUS!! Top 5 ice cream we've ever had!</p>
+      <div class="review-author">
+        <div class="review-avatar">K</div>
+        <div>
+          <div class="review-name">Kara Lutes</div>
+          <div class="review-badge">Local Guide</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-card fade-in">
+      <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <p class="review-text">OMG! This is a must if you're visiting the area! We visited several times and really enjoyed ourselves. The ice cream is absolutely delicious!</p>
+      <div class="review-author">
+        <div class="review-avatar">T</div>
+        <div>
+          <div class="review-name">TodayIsOurAdventure</div>
+          <div class="review-badge">Local Guide &middot; 442 reviews</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-card fade-in">
+      <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <p class="review-text">OMG. This is the best ice cream I've ever eaten. The small blueberry cheesecake in a waffle cone was off the charts delicious and satisfying. Nice staff and fair prices too.</p>
+      <div class="review-author">
+        <div class="review-avatar">M</div>
+        <div>
+          <div class="review-name">Mark Elliott Miller</div>
+          <div class="review-badge">Local Guide &middot; 250 reviews</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-card fade-in">
+      <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <p class="review-text">Run quickly for the best ice cream, friendliest staff and best prices anywhere!! The portions are serious. Definitely an American vibe!</p>
+      <div class="review-author">
+        <div class="review-avatar">S</div>
+        <div>
+          <div class="review-name">Sohaib Alvi</div>
+          <div class="review-badge">Local Guide &middot; 76 reviews</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-card fade-in">
+      <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <p class="review-text">It's an awesome place for cold treats. The ice creams are fantastic. I recommend getting a soft serve to share &mdash; the portion sizes are huge! The staff is kind and friendly.</p>
+      <div class="review-author">
+        <div class="review-avatar">H</div>
+        <div>
+          <div class="review-name">Hungry Chemist</div>
+          <div class="review-badge">Local Guide &middot; 105 reviews</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="review-card fade-in">
+      <div class="review-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+      <p class="review-text">This is a must-go place for tourists and locals alike! The portions are ridiculously generous for the price! Plus the server knew all my 6 flavors without writing them down.</p>
+      <div class="review-author">
+        <div class="review-avatar">B</div>
+        <div>
+          <div class="review-name">Bethany McKay</div>
+          <div class="review-badge">Local Guide &middot; 20 reviews</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- VISIT INFO -->
+<div class="info-section" id="visit">
+  <h2 class="section-title">Come Visit Us</h2>
+  <p class="section-subtitle">We can't wait to scoop for you</p>
+  <div class="info-grid">
+    <div class="info-block">
+      <h3>📍 Location</h3>
+      <p>
+        <strong>8715 Niagara Falls Blvd</strong><br>
+        Niagara Falls, NY 14304<br><br>
+        Free parking lot &amp; street parking available.
+      </p>
+    </div>
+    <div class="info-block">
+      <h3>🕐 Seasonal Hours</h3>
+      <p>
+        We're a seasonal shop &mdash; typically open <strong>mid-March through October</strong>.<br><br>
+        Check our <a href="https://www.facebook.com/dedees.dairy/" target="_blank" style="color: var(--pink-dark); font-weight: 700;">Facebook page</a> for current hours and updates.
+      </p>
+    </div>
+    <div class="info-block">
+      <h3>📞 Contact</h3>
+      <p>
+        <strong>Phone:</strong> <a href="tel:+17162978856" style="color: var(--pink-dark); font-weight: 700;">(716) 297-8856</a><br>
+        <strong>Email:</strong> <a href="mailto:Dedeesdairy@gmail.com" style="color: var(--pink-dark); font-weight: 700;">Dedeesdairy@gmail.com</a>
+      </p>
+      <div class="cash-badge">💵 Cash Only &mdash; ATM Inside</div>
+    </div>
+    <div class="info-block">
+      <h3>🐄 Good to Know</h3>
+      <ul>
+        <li>Indoor &amp; outdoor seating</li>
+        <li>Wheelchair accessible</li>
+        <li>Dairy-free options available</li>
+        <li>Diabetic-friendly flavors</li>
+        <li>Perry's Ice Cream</li>
+        <li>Coffee available</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">De Dee's Dairy 🐄</div>
+  <p class="footer-address">
+    8715 Niagara Falls Blvd, Niagara Falls, NY 14304<br>
+    (716) 297-8856 &middot; Dedeesdairy@gmail.com
+  </p>
+  <div class="footer-social">
+    <a href="https://www.facebook.com/dedees.dairy/" target="_blank" title="Facebook">f</a>
+  </div>
+  <p class="footer-copy">&copy; 2026 De Dee's Dairy. All rights reserved. Niagara Falls' favorite ice cream since forever.</p>
+</footer>
+
+<script>
+  // Fade-in on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
