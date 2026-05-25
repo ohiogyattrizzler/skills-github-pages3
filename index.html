@@ -2033,13 +2033,14 @@ db.ref('mutedRoles').on('value',s=>{
   renderMutedList();renderOnlineUsers();rebuildUserDropdown();queueRenderUserMgmt();
 });
 db.ref('onlineUsers').on('value',s=>{onlineUsers=s.val()||{};renderOnlineUsers();if(typeof _vcRenderUsers==='function'&&!_vcInCall&&!_gcInGroupCall)_vcRenderUsers();if(typeof _renderChatList==='function')_renderChatList();});
-var _prevBannedRoles={};
+var _prevBannedRoles={};var _bannedFirstLoad=true;
 db.ref('bannedRoles').on('value',s=>{
   var next=s.val()||{};
-  if(currentRole==='Admin'){
+  if(currentRole==='Admin'&&!_bannedFirstLoad){
     Object.keys(next).forEach(function(r){ if(!_prevBannedRoles[r] && next[r]){ _amToast((roleDisplayNames[r]||r)+' was banned.'); } });
     Object.keys(_prevBannedRoles).forEach(function(r){ if(!_prevBannedRoles[r])return; if(!next[r]){ _amToast((roleDisplayNames[r]||r)+' ban removed/expired.'); } });
   }
+  _bannedFirstLoad=false;
   _prevBannedRoles=bannedRoles; bannedRoles=next; renderBannedList();renderOnlineUsers();rebuildUserDropdown();queueRenderUserMgmt();
   if(currentRole&&bannedRoles[currentRole]){
     const remaining=bannedRoles[currentRole]-Date.now();
