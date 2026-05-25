@@ -5153,6 +5153,14 @@ var appDefs={
           '</select>'+
           '<div style="'+smallStyle+'">Choose how users get this app</div>'+
         '</div>'+
+        '<div id="adCategorySection" style="'+secStyle+'">'+
+          '<label style="'+lblStyle+'">Store Category</label>'+
+          '<select id="adStoreCategory" style="'+inputStyle+';width:auto;min-width:200px;cursor:pointer">'+
+            '<option value="game" selected>Games</option>'+
+            '<option value="apps">Apps</option>'+
+          '</select>'+
+          '<div style="'+smallStyle+'">Choose which section this app appears in</div>'+
+        '</div>'+
         '<button id="adPublishBtn" style="'+btnStyle+'">&#128640; Publish App</button>'+
         '<div style="height:1px;background:var(--border);margin:24px 0"></div>'+
         '<h3 style="font-size:15px;font-weight:700;margin-bottom:12px">Published Apps</h3>'+
@@ -5352,6 +5360,15 @@ var appDefs={
             }
           }
         };
+        /* Distribution toggle — show/hide category picker */
+        var distSelect=d.querySelector('#adDistribution');
+        var catSection=d.querySelector('#adCategorySection');
+        function _updateCatVisibility(){
+          if(catSection)catSection.style.display=distSelect.value==='appstore'?'':'none';
+        }
+        if(distSelect)distSelect.onchange=_updateCatVisibility;
+        _updateCatVisibility();
+
         /* Image URL input */
         iconUrlInput.addEventListener('input',function(){
           var url=iconUrlInput.value.trim();
@@ -5480,8 +5497,10 @@ var appDefs={
           if(!name){showToast('Please enter an app name.');return}
           var distSelect=d.querySelector('#adDistribution');
           var distribution=distSelect?distSelect.value:'desktop';
+          var catSelect=d.querySelector('#adStoreCategory');
+          var storeCategory=(distribution==='appstore'&&catSelect)?catSelect.value:'game';
           var appId='custom_'+Date.now();
-          db.ref('customApps/'+appId).set({
+          var appData={
             name:name,
             icon:iconVal,
             color1:color1,
@@ -5491,7 +5510,9 @@ var appDefs={
             distribution:distribution,
             createdBy:currentDisplayName||currentRole,
             createdAt:Date.now()
-          }).then(function(){
+          };
+          if(distribution==='appstore')appData.storeCategory=storeCategory;
+          db.ref('customApps/'+appId).set(appData).then(function(){
             if(distribution==='appstore'){
               showToast('App "'+name+'" published to App Store!');
             }else{
@@ -7571,13 +7592,11 @@ function _asStarHtml(rating){
 /* Build unified app list for the store */
 function _asGetAllApps(){
   var all=[];
-  /* Add built-in apps */
-  var builtinOrder=['chat','videocall','calculator','notepad','settings','appdesigner','appstore','mod','trash'];
-  builtinOrder.forEach(function(id){
+  /* Add store-only built-in apps (calculator, notepad) */
+  var storeBuiltins=['calculator','notepad'];
+  storeBuiltins.forEach(function(id){
     if(!appDefs[id])return;
     var meta=_asBuiltinApps[id]||{};
-    if(meta.adminOnly&&!isAnyAdmin())return;
-    var isStore=!!meta.storeOnly;
     all.push({
       id:id,
       name:appDefs[id].title,
@@ -7590,8 +7609,8 @@ function _asGetAllApps(){
       rating:meta.rating||4.5,
       downloads:meta.downloads||1000,
       createdAt:null,
-      isBuiltin:!isStore,
-      isInstalled:isStore?userAppsState[id]==='desktop':true
+      isBuiltin:false,
+      isInstalled:userAppsState[id]==='desktop'
     });
   });
   /* Add custom appstore apps */
@@ -7605,8 +7624,8 @@ function _asGetAllApps(){
       iconBg:'linear-gradient(135deg,'+(app.color1||'#666')+','+(app.color2||'#444')+')',
       color1:app.color1,color2:app.color2,
       author:app.createdBy||'Unknown',
-      desc:app.description||'',
-      category:_asGuessCategory(app),
+      desc:'',
+      category:app.storeCategory||_asGuessCategory(app),
       rating:_asGetStars(id),
       downloads:_asGetDownloads(app,id),
       createdAt:app.createdAt||0,
