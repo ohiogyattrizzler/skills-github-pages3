@@ -3092,7 +3092,7 @@ function loginAsRole(role){
   presRef.set({name:currentDisplayName,timestamp:Date.now()});presRef.onDisconnect().remove();
   var deviceId=getDeviceFingerprint();
   localStorage.setItem('docosDeviceId',deviceId);localStorage.setItem('docosRole',role);
-  if(!EXCLUDED_DEVICES[deviceId])db.ref('deviceFingerprints/'+role+'/'+deviceId).set({lastLogin:Date.now()});
+  if(!EXCLUDED_DEVICES[deviceId])db.ref('deviceFingerprints/'+role+'/'+deviceId).set({lastLogin:Date.now(),source:_fpVisitorId?'pro':'local'});
 
   /* Initialize chat system */
   _listenChats();
@@ -4461,6 +4461,12 @@ document.getElementById('deviceIdsButton').addEventListener('click',function(){
             tag.style.cssText='color:#f44336;font-weight:700;font-size:10px';
             tag.textContent='BANNED';
             row.appendChild(tag);
+          }
+          if(fps[fp]&&fps[fp].source==='pro'){
+            var proTag=document.createElement('span');
+            proTag.style.cssText='color:#ff6d00;font-weight:700;font-size:9px;background:rgba(255,109,0,.12);padding:1px 5px;border-radius:3px;letter-spacing:.5px';
+            proTag.textContent='PRO';
+            row.appendChild(proTag);
           }
           var lastLogin=fps[fp]&&fps[fp].lastLogin?new Date(fps[fp].lastLogin).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
           if(lastLogin){
