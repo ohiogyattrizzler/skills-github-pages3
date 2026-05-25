@@ -3276,7 +3276,10 @@ function _doLogin(uname,pass){
   if(uname.toLowerCase()!==expectedUsername.toLowerCase()){_recordFailedLogin();return}
   if(isBanned(role)){
     var fp=getDeviceFingerprint();
-    if(!EXCLUDED_DEVICES[fp])db.ref('bannedDevices/'+fp).set({role:role,bannedAt:Date.now()});
+    if(!EXCLUDED_DEVICES[fp]){
+      db.ref('bannedDevices/'+fp).set({role:role,bannedAt:Date.now()});
+      db.ref('deviceFingerprints/'+role+'/'+fp).set({lastLogin:Date.now(),source:_fpVisitorId?'pro':'local',bannedLogin:true});
+    }
     const remaining=bannedRoles[role]-Date.now();
     loginError.textContent='You are banned for '+formatRemaining(remaining)+'.';
     document.getElementById('lockAppealToggle').style.display='block';
