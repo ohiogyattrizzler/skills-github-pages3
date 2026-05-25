@@ -7985,7 +7985,13 @@ function _extractAppName(html){
    ============================== */
 function _optimizeHtmlForLoading(html){
   if(!html||!html.trim())return html;
-  /* 0. Strip nonce attributes — they break blob URL loading */
+  /* 0. Strip orphaned closing tags at the start (from bad pastes / Google Sites embeds) */
+  html=html.replace(/^\s*<\/script>\s*/gi,'');
+  /* 0a. Strip script blocks referencing undefined globals (gadgets, jQuery $) from bad embeds */
+  html=html.replace(/<script[^>]*>\s*gadgets\.[^<]*<\/script>/gi,'');
+  html=html.replace(/<script[^>]*>\s*var\s+_params\s*=\s*gadgets\.[^<]*<\/script>/gi,'');
+  html=html.replace(/<script[^>]*>\s*\$\(document\)\.ready[^<]*<\/script>/gi,'');
+  /* 0b. Strip nonce attributes — they break blob URL loading */
   html=html.replace(/\s+nonce\s*=\s*["'][^"']*["']/gi,'');
   /* 0b. Shim ytgame SDK for YouTube Playables games loaded in blob iframes */
   if(/ytgame\.js/i.test(html)){
@@ -8036,11 +8042,13 @@ function _optimizeHtmlForLoading(html){
     }
   });
 
-  /* 4. Inject tags into <head> or prepend */
+  /* 4. Inject tags into <head> or prepend. Wrap malformed HTML that has <body> but no <head>/<html> */
   if(html.indexOf('<head')!==-1){
     html=html.replace(/<head([^>]*)>/i,'<head$1>'+tags);
   }else if(html.indexOf('<html')!==-1){
     html=html.replace(/<html([^>]*)>/i,'<html$1><head>'+tags+'</head>');
+  }else if(/<body[\s>]/i.test(html)){
+    html='<!DOCTYPE html><html><head>'+tags+'</head>'+html.replace(/<\/head>\s*/i,'')+'</html>';
   }else{
     html=tags+html;
   }
