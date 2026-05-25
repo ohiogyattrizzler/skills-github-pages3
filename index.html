@@ -8336,14 +8336,20 @@ function removeCustomDesktopIcon(appId){
 }
 function _addBuiltinStoreIcon(appId){
   var def=appDefs[appId];if(!def)return;
-  var existing=document.querySelector('.desktop-icon[data-app="'+appId+'"]');
+  var icons=document.getElementById('desktopIcons');if(!icons)return;
+  var existing=icons.querySelector('[data-app="'+appId+'"]');
   if(existing)return;
-  var desktop=document.getElementById('desktop');if(!desktop)return;
+  var pos=null;
+  try{var saved=JSON.parse(localStorage.getItem('docosIconPositions_'+currentRole));if(saved&&saved[appId])pos=saved[appId]}catch(e){}
+  if(!pos)pos=findOpenIconPosition();
   var icon=document.createElement('div');
   icon.className='desktop-icon';
   icon.dataset.app=appId;
   icon.setAttribute('ondblclick',"openApp('"+appId+"')");
   icon.setAttribute('onclick',"if(window.innerWidth<=768)openApp('"+appId+"')");
+  var posLeft=typeof pos.left==='string'?pos.left:pos.left+'px';
+  var posTop=typeof pos.top==='string'?pos.top:pos.top+'px';
+  icon.style.cssText='left:'+posLeft+';top:'+posTop;
   var iconImg=document.createElement('div');
   iconImg.className='icon-img';
   iconImg.style.background=def.iconBg||'linear-gradient(135deg,#667,#445)';
@@ -8353,7 +8359,7 @@ function _addBuiltinStoreIcon(appId){
   label.id='iconLabel-'+appId;
   label.textContent=def.title;
   icon.appendChild(iconImg);icon.appendChild(label);
-  desktop.appendChild(icon);
+  icons.appendChild(icon);
   initCustomIconDrag(icon);
 }
 function removeCustomAppFully(appId){
@@ -8988,6 +8994,9 @@ function _fsRenderDesktopItems(){
       /* Never restore icons hidden by App Manager */
       var amSt=_amAppStates[aid];
       if(amSt&&amSt.hidden&&currentRole!=='Admin')return;
+      /* Never restore store-only/custom apps that aren't installed */
+      if(userAppsState[aid]&&userAppsState[aid]!=='desktop')return;
+      if((customAppsData[aid]||(_asBuiltinApps[aid]&&_asBuiltinApps[aid].storeOnly))&&userAppsState[aid]!=='desktop')return;
       ic.style.display='';
     }
   });
