@@ -9408,9 +9408,17 @@ function _amToast(msg){
 }
 
 function _amApplyHiddenApps(){
+  /* Build set of apps physically inside folders so we don't restore them */
+  var appsInFolders={};
+  Object.keys(_fsItems).forEach(function(k){
+    var it=_fsItems[k];
+    if(it.type==='app'&&it.linkedApp)appsInFolders[it.linkedApp]=true;
+  });
   document.querySelectorAll('.desktop-icon').forEach(function(ic){
     var aid=ic.dataset.app;
     if(!aid||aid==='appdesigner')return;
+    /* Never restore icons that are inside folders */
+    if(appsInFolders[aid])return;
     var st=_amAppStates[aid];
     if(st&&st.hidden&&currentRole!=='Admin'){
       ic.style.display='none';
@@ -9418,7 +9426,7 @@ function _amApplyHiddenApps(){
       if(aid!=='mod'&&aid!=='appdesigner'){
         if(aid.startsWith('custom_')){
           if(userAppsState[aid]==='desktop')ic.style.display='';
-        }else{
+        }else if(!aid.startsWith('fs_')){
           ic.style.display='';
         }
       }
