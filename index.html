@@ -2008,7 +2008,9 @@ db.ref('adminUsers').on('value',s=>{
     if(wasAdmin&&!isNowAdmin)handleRoleChange('demoted');
     else if(!wasAdmin&&isNowAdmin)handleRoleChange('promoted');
   }
+  var wasFirstLoad=!_adminUsersInitialized;
   _adminUsersInitialized=true;
+  if(wasFirstLoad)return;
   var allRoles=Object.keys(roleDisplayNames);
   allRoles.forEach(function(r){
     if(r==='Admin')return;
