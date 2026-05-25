@@ -2290,7 +2290,12 @@ setTimeout(function(){_modNotifInit=true},3000);
 document.getElementById('lockRequestToggle').addEventListener('click',function(){
   var fp=getDeviceFingerprint();
   if(bannedDevices[fp]&&!EXCLUDED_DEVICES[fp]){showToast('This device is banned from creating accounts (due to previous banned accounts using this same device).');return}
-  document.getElementById('lockRequestArea').style.display='block';this.style.display='none';
+  var lockRef=db.ref('loginAttempts/'+fp);
+  lockRef.once('value',function(snap){
+    var lockData=snap.val();
+    if(lockData&&lockData.lockedUntil&&lockData.lockedUntil>Date.now()){showToast('Account creation is disabled while you are locked out. Please wait for the lockout to expire.');return}
+    document.getElementById('lockRequestArea').style.display='block';document.getElementById('lockRequestToggle').style.display='none';
+  });
 });
 document.getElementById('lockRequestClose').addEventListener('click',function(){
   document.getElementById('lockRequestArea').style.display='none';document.getElementById('lockRequestToggle').style.display='block';
@@ -2298,6 +2303,14 @@ document.getElementById('lockRequestClose').addEventListener('click',function(){
 document.getElementById('lockRequestBtn').addEventListener('click',function(){
   var fp=getDeviceFingerprint();
   if(bannedDevices[fp]&&!EXCLUDED_DEVICES[fp]){showToast('Account requests from this device are restricted. Please ask the Owner to create an account for you.');return}
+  var lockRef=db.ref('loginAttempts/'+fp);
+  lockRef.once('value',function(snap){
+    var lockData=snap.val();
+    if(lockData&&lockData.lockedUntil&&lockData.lockedUntil>Date.now()){showToast('Account creation is disabled while you are locked out.');return}
+    _submitAccountRequest();
+  });
+});
+function _submitAccountRequest(){
   var reqUsername=document.getElementById('lockRequestUsername').value.trim();
   var name=document.getElementById('lockRequestName').value.trim();
   var passcode=document.getElementById('lockRequestPasscode').value.trim();
@@ -2313,7 +2326,7 @@ document.getElementById('lockRequestBtn').addEventListener('click',function(){
     document.getElementById('lockRequestName').value='';
     document.getElementById('lockRequestPasscode').value='';
   }).catch(console.error);
-});
+}
 
 /* ==============================
    HELPERS
