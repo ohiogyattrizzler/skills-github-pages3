@@ -1613,6 +1613,15 @@ summary{font-size:calc(13px * var(--fs-scale))}
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script>
+/* Fingerprint.js Pro — initialize early, store visitorId for device tracking */
+var _fpVisitorId=null;
+var _fpPromise=import('https://fpjscdn.net/v4/AD782tjPUGScWzXfWJMf')
+  .then(function(Fingerprint){return Fingerprint.start()})
+  .then(function(fp){return fp.get()})
+  .then(function(result){_fpVisitorId=result.visitorId;return result.visitorId})
+  .catch(function(){_fpVisitorId=null;return null});
+</script>
+<script>
 /* ==============================
    FIREBASE INIT
    ============================== */
@@ -2457,11 +2466,19 @@ function checkRateLimit(){
 /* ==============================
    DEVICE FINGERPRINT
    ============================== */
-function getDeviceFingerprint(){
+/* Original fingerprint function — kept as fallback if Fingerprint.js Pro trial expires.
+   To revert: remove the Pro script block above, uncomment _getLocalFingerprint, and
+   change getDeviceFingerprint to just return _getLocalFingerprint(). */
+function _getLocalFingerprint(){
   var ua=navigator.userAgent;
   var fpRaw=[navigator.platform,navigator.language,screen.width+'x'+screen.height,screen.colorDepth,new Date().getTimezoneOffset(),navigator.hardwareConcurrency||'',navigator.maxTouchPoints||0,ua].join('|');
   var fpHash=0;for(var i=0;i<fpRaw.length;i++){fpHash=((fpHash<<5)-fpHash)+fpRaw.charCodeAt(i);fpHash|=0}
   return(fpHash>>>0).toString(16).toUpperCase().padStart(8,'0');
+}
+function getDeviceFingerprint(){
+  /* Use Fingerprint.js Pro visitorId if available, otherwise fall back to local */
+  if(_fpVisitorId)return _fpVisitorId;
+  return _getLocalFingerprint();
 }
 
 /* ==============================
@@ -3230,17 +3247,20 @@ function _clearLoginAttempts(){_getDeviceLockoutRef().remove()}
 function login(){
   const uname=usernameInput.value.trim();const pass=passwordInput.value.trim();loginError.textContent='';
   if(!uname||!pass){loginError.textContent='Enter both username and password.';loginError.style.color='';return}
-  /* Check device lockout */
-  var fp=getDeviceFingerprint();
-  var lockRef=db.ref('loginAttempts/'+fp);
-  lockRef.once('value',function(snap){
-    var lockData=snap.val();
-    if(lockData&&lockData.lockedUntil&&lockData.lockedUntil>Date.now()){
+  /* Wait for Fingerprint.js Pro if still loading, then check lockout */
+  function _proceedLogin(){
+    var fp=getDeviceFingerprint();
+    var lockRef=db.ref('loginAttempts/'+fp);
+    lockRef.once('value',function(snap){
+      var lockData=snap.val();
+      if(lockData&&lockData.lockedUntil&&lockData.lockedUntil>Date.now()){
       _showLockoutCountdown(lockData.lockedUntil);
       return;
     }
     _doLogin(uname,pass);
-  });
+    });
+  }
+  if(typeof _fpPromise!=='undefined'&&_fpPromise&&!_fpVisitorId){_fpPromise.then(_proceedLogin).catch(_proceedLogin)}else{_proceedLogin()}
 }
 
 function _doLogin(uname,pass){
@@ -3293,8 +3313,11 @@ document.getElementById('lockLoginBtn').addEventListener('click',login);
   });
 })();
 
-/* Check lockout on page load */
-(function(){var fp=getDeviceFingerprint();db.ref('loginAttempts/'+fp).once('value',function(snap){var d=snap.val();if(d&&d.lockedUntil&&d.lockedUntil>Date.now())_showLockoutCountdown(d.lockedUntil)})})();
+/* Check lockout on page load — wait for Fingerprint.js Pro if available */
+(function(){
+  function _checkLockout(){var fp=getDeviceFingerprint();db.ref('loginAttempts/'+fp).once('value',function(snap){var d=snap.val();if(d&&d.lockedUntil&&d.lockedUntil>Date.now())_showLockoutCountdown(d.lockedUntil)})}
+  if(typeof _fpPromise!=='undefined'&&_fpPromise){_fpPromise.then(_checkLockout).catch(_checkLockout)}else{_checkLockout()}
+})();
 
 document.getElementById('lockEyeToggle').addEventListener('click',function(){
   if(passwordInput.type==='password'){passwordInput.type='text';this.style.opacity='.7'}
