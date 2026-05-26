@@ -10,21 +10,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
+      --red: #D32027;
+      --red-dark: #B01A20;
+      --red-light: #E8444A;
       --cream: #FFF8F0;
-      --pink: #F9A8C9;
-      --pink-dark: #E87BAD;
-      --brown: #5C3D2E;
-      --brown-light: #8B6914;
-      --cow-white: #FFFFFF;
-      --cow-black: #2D2D2D;
+      --white: #FFFFFF;
+      --dark: #1a1a1a;
+      --brown: #4A2C1A;
+      --gold: #FFD700;
       --caramel: #C68E42;
-      --mint: #A8E6CF;
-      --strawberry: #FF6B8A;
-      --chocolate: #6B3A2A;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
     html { scroll-behavior: smooth; }
 
     body {
@@ -32,24 +29,6 @@
       background: var(--cream);
       color: var(--brown);
       overflow-x: hidden;
-    }
-
-    /* COW SPOT PATTERN */
-    .cow-spots {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      pointer-events: none;
-      z-index: -1;
-      opacity: 0.03;
-      background-image:
-        radial-gradient(ellipse 120px 90px at 10% 15%, var(--cow-black) 60%, transparent 61%),
-        radial-gradient(ellipse 80px 110px at 85% 8%, var(--cow-black) 60%, transparent 61%),
-        radial-gradient(ellipse 150px 80px at 50% 50%, var(--cow-black) 60%, transparent 61%),
-        radial-gradient(ellipse 90px 120px at 20% 80%, var(--cow-black) 60%, transparent 61%),
-        radial-gradient(ellipse 110px 70px at 75% 70%, var(--cow-black) 60%, transparent 61%),
-        radial-gradient(ellipse 70px 100px at 40% 30%, var(--cow-black) 60%, transparent 61%),
-        radial-gradient(ellipse 130px 90px at 90% 45%, var(--cow-black) 60%, transparent 61%),
-        radial-gradient(ellipse 100px 80px at 60% 90%, var(--cow-black) 60%, transparent 61%);
     }
 
     /* HEADER / HERO */
@@ -61,23 +40,17 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      background: linear-gradient(145deg, #2D2D2D 0%, #1a1a1a 50%, #2D2D2D 100%);
+      background: var(--red);
       overflow: hidden;
     }
 
-    header::before {
-      content: '';
+    .hero-bg {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
-      background-image:
-        radial-gradient(ellipse 200px 150px at 5% 20%, rgba(255,255,255,0.08) 60%, transparent 61%),
-        radial-gradient(ellipse 180px 220px at 80% 10%, rgba(255,255,255,0.08) 60%, transparent 61%),
-        radial-gradient(ellipse 250px 130px at 45% 60%, rgba(255,255,255,0.06) 60%, transparent 61%),
-        radial-gradient(ellipse 160px 200px at 15% 75%, rgba(255,255,255,0.07) 60%, transparent 61%),
-        radial-gradient(ellipse 190px 140px at 70% 80%, rgba(255,255,255,0.08) 60%, transparent 61%),
-        radial-gradient(ellipse 220px 170px at 90% 50%, rgba(255,255,255,0.06) 60%, transparent 61%),
-        radial-gradient(ellipse 140px 180px at 35% 30%, rgba(255,255,255,0.07) 60%, transparent 61%);
-      z-index: 0;
+      background-image: url('https://code-deploy-app-gthbxjgo.devinapps.com/dedees-dairy/images/storefront.png');
+      background-size: cover;
+      background-position: center;
+      opacity: 0.2;
     }
 
     .hero-content {
@@ -86,39 +59,27 @@
       padding: 2rem;
     }
 
-    .cow-emoji {
-      font-size: 4rem;
-      margin-bottom: 1rem;
-      animation: moo 3s ease-in-out infinite;
-    }
-
-    @keyframes moo {
-      0%, 100% { transform: scale(1) rotate(0deg); }
-      25% { transform: scale(1.1) rotate(-5deg); }
-      75% { transform: scale(1.1) rotate(5deg); }
-    }
-
     .hero-title {
       font-family: 'Fredoka One', cursive;
       font-size: clamp(3rem, 8vw, 6rem);
-      color: var(--cow-white);
-      text-shadow: 3px 3px 0 var(--pink), 6px 6px 0 rgba(0,0,0,0.2);
+      color: var(--white);
+      text-shadow: 3px 3px 0 rgba(0,0,0,0.3);
       line-height: 1.1;
       margin-bottom: 0.5rem;
     }
 
     .hero-subtitle {
       font-size: clamp(1.1rem, 2.5vw, 1.5rem);
-      color: var(--pink);
+      color: rgba(255,255,255,0.9);
       font-weight: 700;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
       text-transform: uppercase;
       margin-bottom: 1.5rem;
     }
 
     .hero-tagline {
       font-size: clamp(1rem, 2vw, 1.25rem);
-      color: rgba(255,255,255,0.85);
+      color: rgba(255,255,255,0.9);
       max-width: 600px;
       margin: 0 auto 2rem;
       line-height: 1.6;
@@ -128,7 +89,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.25);
       backdrop-filter: blur(10px);
       padding: 0.75rem 1.5rem;
       border-radius: 50px;
@@ -138,7 +99,7 @@
       margin-bottom: 2rem;
     }
 
-    .stars { color: #FFD700; font-size: 1.3rem; }
+    .stars { color: var(--gold); font-size: 1.3rem; }
 
     .cta-buttons {
       display: flex;
@@ -163,20 +124,20 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--pink), var(--pink-dark));
-      color: white;
-      box-shadow: 0 4px 20px rgba(249,168,201,0.4);
+      background: var(--white);
+      color: var(--red);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
     }
 
     .btn-primary:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 30px rgba(249,168,201,0.6);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.3);
     }
 
     .btn-secondary {
       background: rgba(255,255,255,0.15);
       color: white;
-      border: 2px solid rgba(255,255,255,0.3);
+      border: 2px solid rgba(255,255,255,0.5);
     }
 
     .btn-secondary:hover {
@@ -191,7 +152,7 @@
       transform: translateX(-50%);
       z-index: 1;
       animation: bounce 2s infinite;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255,255,255,0.6);
       font-size: 1.5rem;
     }
 
@@ -205,7 +166,7 @@
       position: sticky;
       top: 0;
       z-index: 100;
-      background: var(--cow-white);
+      background: var(--white);
       box-shadow: 0 2px 20px rgba(0,0,0,0.08);
       display: flex;
       justify-content: center;
@@ -232,12 +193,12 @@
       left: 0;
       width: 0;
       height: 3px;
-      background: var(--pink);
+      background: var(--red);
       border-radius: 2px;
       transition: width 0.3s;
     }
 
-    nav a:hover { color: var(--pink-dark); }
+    nav a:hover { color: var(--red); }
     nav a:hover::after { width: 100%; }
 
     /* SECTIONS */
@@ -252,7 +213,7 @@
       font-size: clamp(2rem, 5vw, 3rem);
       text-align: center;
       margin-bottom: 0.5rem;
-      color: var(--brown);
+      color: var(--red);
     }
 
     .section-subtitle {
@@ -290,12 +251,13 @@
       text-align: center;
       box-shadow: 0 4px 20px rgba(0,0,0,0.06);
       transition: transform 0.3s;
+      border-top: 4px solid var(--red);
     }
 
     .highlight-card:hover { transform: translateY(-5px); }
 
     .highlight-card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
-    .highlight-card .label { font-weight: 800; font-size: 1.1rem; }
+    .highlight-card .label { font-weight: 800; font-size: 1.1rem; color: var(--red-dark); }
     .highlight-card .detail { font-size: 0.85rem; opacity: 0.7; margin-top: 0.25rem; }
 
     .about-image {
@@ -317,28 +279,43 @@
       right: -15px;
       width: 100%;
       height: 100%;
-      border: 4px solid var(--pink);
+      border: 4px solid var(--red);
       border-radius: 24px;
       z-index: -1;
     }
 
-    /* GALLERY */
-    .gallery-section {
-      background: linear-gradient(135deg, var(--cow-black) 0%, #1a1a1a 100%);
-      padding: 5rem 2rem;
-      max-width: 100%;
+    /* STOREFRONT BANNER */
+    .storefront-banner {
+      background: var(--red);
+      padding: 3rem 2rem;
+      text-align: center;
       position: relative;
       overflow: hidden;
     }
 
-    .gallery-section::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-image:
-        radial-gradient(ellipse 180px 140px at 8% 15%, rgba(255,255,255,0.05) 60%, transparent 61%),
-        radial-gradient(ellipse 150px 190px at 85% 20%, rgba(255,255,255,0.05) 60%, transparent 61%),
-        radial-gradient(ellipse 200px 120px at 50% 75%, rgba(255,255,255,0.04) 60%, transparent 61%);
+    .storefront-banner .banner-images {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .storefront-banner .banner-images img {
+      width: 100%;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      object-fit: cover;
+      aspect-ratio: 4/3;
+    }
+
+    /* GALLERY */
+    .gallery-section {
+      background: var(--dark);
+      padding: 5rem 2rem;
+      max-width: 100%;
+      position: relative;
+      overflow: hidden;
     }
 
     .gallery-section .section-title { color: white; }
@@ -381,7 +358,7 @@
       left: 0;
       right: 0;
       padding: 1.5rem;
-      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      background: linear-gradient(transparent, rgba(211,32,39,0.85));
       color: white;
       font-weight: 700;
       font-size: 1.1rem;
@@ -407,16 +384,17 @@
       box-shadow: 0 4px 25px rgba(0,0,0,0.06);
       position: relative;
       transition: transform 0.3s;
+      border-left: 5px solid var(--red);
     }
 
     .review-card:hover { transform: translateY(-5px); }
 
     .review-card::before {
-      content: '"';
+      content: '\201C';
       font-family: 'Fredoka One', cursive;
       font-size: 5rem;
-      color: var(--pink);
-      opacity: 0.2;
+      color: var(--red);
+      opacity: 0.15;
       position: absolute;
       top: 10px;
       left: 20px;
@@ -424,7 +402,7 @@
     }
 
     .review-stars {
-      color: #FFD700;
+      color: var(--gold);
       font-size: 1.2rem;
       margin-bottom: 1rem;
     }
@@ -447,7 +425,7 @@
       width: 45px;
       height: 45px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--pink), var(--caramel));
+      background: linear-gradient(135deg, var(--red), var(--red-dark));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -469,6 +447,8 @@
       box-shadow: 0 10px 50px rgba(0,0,0,0.06);
     }
 
+    .info-section .section-title { color: var(--red); }
+
     .info-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -479,7 +459,7 @@
       font-family: 'Fredoka One', cursive;
       font-size: 1.3rem;
       margin-bottom: 1rem;
-      color: var(--pink-dark);
+      color: var(--red);
     }
 
     .info-block p, .info-block li {
@@ -492,15 +472,17 @@
     }
 
     .info-block ul li::before {
-      content: '🐄 ';
+      content: '• ';
+      color: var(--red);
+      font-weight: 800;
     }
 
     .cash-badge {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: linear-gradient(135deg, #FFD700, #FFA500);
-      color: var(--brown);
+      background: var(--red);
+      color: white;
       padding: 0.75rem 1.5rem;
       border-radius: 50px;
       font-weight: 800;
@@ -510,7 +492,7 @@
 
     /* FOOTER */
     footer {
-      background: var(--cow-black);
+      background: var(--red-dark);
       color: white;
       text-align: center;
       padding: 3rem 2rem;
@@ -522,8 +504,8 @@
       content: '';
       position: absolute;
       top: 0; left: 0; right: 0;
-      height: 6px;
-      background: linear-gradient(90deg, var(--pink), var(--caramel), var(--mint), var(--strawberry), var(--pink));
+      height: 4px;
+      background: var(--white);
     }
 
     .footer-brand {
@@ -533,7 +515,7 @@
     }
 
     .footer-address {
-      opacity: 0.7;
+      opacity: 0.8;
       margin-bottom: 1rem;
       line-height: 1.6;
     }
@@ -552,7 +534,7 @@
       width: 45px;
       height: 45px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.15);
       color: white;
       text-decoration: none;
       font-size: 1.2rem;
@@ -560,22 +542,24 @@
     }
 
     .footer-social a:hover {
-      background: var(--pink);
+      background: var(--white);
+      color: var(--red);
       transform: translateY(-3px);
     }
 
     .footer-copy {
-      opacity: 0.5;
+      opacity: 0.6;
       font-size: 0.85rem;
     }
 
-    /* COW DIVIDER */
-    .cow-divider {
+    /* DIVIDER */
+    .section-divider {
       text-align: center;
-      font-size: 2rem;
       padding: 1rem;
-      letter-spacing: 1rem;
+      font-size: 1.5rem;
+      color: var(--red);
       opacity: 0.3;
+      letter-spacing: 0.5rem;
     }
 
     /* RESPONSIVE */
@@ -588,6 +572,7 @@
       nav a { font-size: 0.8rem; }
       .gallery-item:nth-child(1) { grid-row: span 1; aspect-ratio: 1; }
       section { padding: 3rem 1.5rem; }
+      .storefront-banner .banner-images { grid-template-columns: 1fr; }
     }
 
     /* ANIMATIONS */
@@ -605,12 +590,10 @@
 </head>
 <body>
 
-<div class="cow-spots"></div>
-
 <!-- HERO -->
 <header>
+  <div class="hero-bg"></div>
   <div class="hero-content">
-    <div class="cow-emoji">🐄</div>
     <h1 class="hero-title">De Dee's Dairy</h1>
     <p class="hero-subtitle">Niagara Falls' Legendary Ice Cream</p>
     <p class="hero-tagline">Storied, old-school ice cream parlor serving up the most generous scoops in Western New York. Over 50 flavors of Perry's hand-dipped ice cream, creamy soft serve, towering sundaes & more.</p>
@@ -640,7 +623,7 @@
     <div class="about-text fade-in">
       <h2 class="section-title" style="text-align:left;">A Niagara Falls<br>Tradition</h2>
       <p>De Dee's Dairy is the kind of ice cream shop people drive across state lines for. Nestled on Niagara Falls Boulevard, we've been scooping up smiles for generations with our legendary portions, unbeatable prices, and the warmest welcome in town.</p>
-      <p>We proudly serve <strong>Perry's Ice Cream</strong> &mdash; New York's finest &mdash; with over 50 hand-dipped flavors, velvety soft serve, towering banana splits, decadent sundaes, thick milkshakes, and our famous ice cream flights. Every scoop is served fresh, every portion is ridiculous, and every visit feels like coming home.</p>
+      <p>We proudly serve <strong>Perry's Ice Cream</strong> &mdash; New York's finest &mdash; with over 50 hand-dipped flavors, velvety soft serve, towering banana splits, decadent sundaes, thick milkshakes, and our famous ice cream flights.</p>
       <div class="about-highlights">
         <div class="highlight-card">
           <div class="icon">🍦</div>
@@ -648,7 +631,7 @@
           <div class="detail">Perry's hand-dipped</div>
         </div>
         <div class="highlight-card">
-          <div class="icon">🤯</div>
+          <div class="icon">🍨</div>
           <div class="label">Huge Portions</div>
           <div class="detail">"Small" = large anywhere else</div>
         </div>
@@ -670,7 +653,14 @@
   </div>
 </section>
 
-<div class="cow-divider">🐄 🐄 🐄</div>
+<!-- STOREFRONT PHOTOS -->
+<div class="storefront-banner">
+  <div class="banner-images">
+    <img src="https://code-deploy-app-gthbxjgo.devinapps.com/dedees-dairy/images/storefront.png" alt="De Dee's Dairy storefront exterior" loading="lazy">
+    <img src="https://code-deploy-app-gthbxjgo.devinapps.com/dedees-dairy/images/awning-sign.png" alt="De Dee's Dairy red awning and Perry's Ice Cream sign" loading="lazy">
+    <img src="https://code-deploy-app-gthbxjgo.devinapps.com/dedees-dairy/images/interior.png" alt="De Dee's Dairy interior counter and menu" loading="lazy">
+  </div>
+</div>
 
 <!-- GALLERY / MENU -->
 <section class="gallery-section" id="menu">
@@ -791,7 +781,7 @@
   <p class="section-subtitle">We can't wait to scoop for you</p>
   <div class="info-grid">
     <div class="info-block">
-      <h3>📍 Location</h3>
+      <h3>Location</h3>
       <p>
         <strong>8715 Niagara Falls Blvd</strong><br>
         Niagara Falls, NY 14304<br><br>
@@ -799,22 +789,22 @@
       </p>
     </div>
     <div class="info-block">
-      <h3>🕐 Seasonal Hours</h3>
+      <h3>Seasonal Hours</h3>
       <p>
         We're a seasonal shop &mdash; typically open <strong>mid-March through October</strong>.<br><br>
-        Check our <a href="https://www.facebook.com/dedees.dairy/" target="_blank" style="color: var(--pink-dark); font-weight: 700;">Facebook page</a> for current hours and updates.
+        Check our <a href="https://www.facebook.com/dedees.dairy/" target="_blank" style="color: var(--red); font-weight: 700;">Facebook page</a> for current hours and updates.
       </p>
     </div>
     <div class="info-block">
-      <h3>📞 Contact</h3>
+      <h3>Contact</h3>
       <p>
-        <strong>Phone:</strong> <a href="tel:+17162978856" style="color: var(--pink-dark); font-weight: 700;">(716) 297-8856</a><br>
-        <strong>Email:</strong> <a href="mailto:Dedeesdairy@gmail.com" style="color: var(--pink-dark); font-weight: 700;">Dedeesdairy@gmail.com</a>
+        <strong>Phone:</strong> <a href="tel:+17162978856" style="color: var(--red); font-weight: 700;">(716) 297-8856</a><br>
+        <strong>Email:</strong> <a href="mailto:Dedeesdairy@gmail.com" style="color: var(--red); font-weight: 700;">Dedeesdairy@gmail.com</a>
       </p>
-      <div class="cash-badge">💵 Cash Only &mdash; ATM Inside</div>
+      <div class="cash-badge">Cash Only &mdash; ATM Inside</div>
     </div>
     <div class="info-block">
-      <h3>🐄 Good to Know</h3>
+      <h3>Good to Know</h3>
       <ul>
         <li>Indoor &amp; outdoor seating</li>
         <li>Wheelchair accessible</li>
@@ -829,7 +819,7 @@
 
 <!-- FOOTER -->
 <footer>
-  <div class="footer-brand">De Dee's Dairy 🐄</div>
+  <div class="footer-brand">De Dee's Dairy</div>
   <p class="footer-address">
     8715 Niagara Falls Blvd, Niagara Falls, NY 14304<br>
     (716) 297-8856 &middot; Dedeesdairy@gmail.com
@@ -841,7 +831,6 @@
 </footer>
 
 <script>
-  // Fade-in on scroll
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
