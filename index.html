@@ -483,6 +483,17 @@ html,body{background:var(--bg);color:var(--text)}
 .reco-overlay,.cache-overlay,.theme-overlay{position:fixed;top:0;left:0;width:100vw;height:100%;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9998}
 .reco-modal,.cache-modal,.theme-modal{background:linear-gradient(135deg,var(--bg4),var(--bg5));border:1px solid var(--border);border-radius:14px;padding:28px 32px 24px;width:420px;max-width:90%;box-shadow:0 12px 48px rgba(0,0,0,.8);position:relative}
 .cache-modal{width:480px}
+.recover-overlay{position:fixed;top:0;left:0;width:100vw;height:100%;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9998}
+.recover-modal{background:linear-gradient(135deg,var(--bg4),var(--bg5));border:1px solid var(--border);border-radius:14px;padding:28px 32px 24px;width:560px;max-width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,.8);position:relative}
+.recover-modal-close{position:absolute;top:10px;right:14px;background:none;border:none;color:var(--text5);font-size:22px;cursor:pointer;line-height:1;padding:4px 8px;border-radius:4px;transition:all .2s}
+.recover-modal-close:hover{color:var(--text);background:var(--border2)}
+.recover-modal h3{color:var(--accent);font-size:18px;font-weight:700;margin-bottom:12px;text-align:center}
+.recover-user-card{padding:10px 12px;margin-bottom:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s}
+.recover-user-card:hover{border-color:var(--accent);background:var(--bg2)}
+.recover-file-item{padding:6px 8px;margin:3px 0;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:12px;display:flex;align-items:center;gap:8px}
+.recover-tree{max-height:350px;overflow-y:auto;margin-bottom:12px;padding:4px}
+.recover-tree-indent{margin-left:16px}
+.recover-actions{display:flex;gap:8px;margin-top:10px}
 .theme-modal{width:640px;max-width:96%;max-height:90vh;overflow-y:auto}
 .reco-modal-close,.cache-modal-close,.theme-modal-close{position:absolute;top:10px;right:14px;background:none;border:none;color:var(--text5);font-size:22px;cursor:pointer;line-height:1;padding:4px 8px;border-radius:4px;transition:all .2s}
 .theme-modal-close{position:sticky;float:right;top:0;right:0;z-index:1}
@@ -992,7 +1003,7 @@ summary::marker{color:var(--border2)}
   .toggle-row label{font-size:13px}
 
   /* Modals */
-  .reco-modal,.cache-modal,.theme-modal,.demote-popup{width:96%;max-width:96%;padding:20px 16px;border-radius:16px}
+  .reco-modal,.cache-modal,.theme-modal,.demote-popup,.recover-modal{width:96%;max-width:96%;padding:20px 16px;border-radius:16px}
   .reco-modal h3,.cache-modal h3,.theme-modal h3,.demote-popup h3{font-size:18px}
   .reco-modal textarea{font-size:16px;padding:12px}
   .reco-modal button.reco-submit{padding:14px;font-size:15px;min-height:48px}
@@ -1587,6 +1598,7 @@ summary{font-size:calc(13px * var(--fs-scale))}
       <button style="background:linear-gradient(135deg,#c62828,#b71c1c)" id="deleteAllChatButton">Delete All Chat</button>
       <button style="background:linear-gradient(135deg,#555,#444)" id="chatCacheButton">&#128451; Chat Cache</button>
       <button style="background:linear-gradient(135deg,#37474f,#263238)" id="deviceIdsButton">&#128274; Device IDs</button>
+      <button style="background:linear-gradient(135deg,#1b5e20,#2e7d32)" id="recoverFilesButton">&#128451; Recover Deleted User Files</button>
       <div class="section-divider"></div>
       <label>&#9881; Settings</label>
       <div class="toggle-row">
@@ -4609,6 +4621,150 @@ document.getElementById('deleteAllChatButton').addEventListener('click',function
     setTimeout(()=>{btn.textContent='Delete All Chat';btn.style.background='#e04040';delete btn.dataset.confirm},3000);
   }
 });
+
+/* ==============================
+   RECOVER DELETED USER FILES
+   ============================== */
+document.getElementById('recoverFilesButton').addEventListener('click',function(){
+  if(!isAnyAdmin())return;
+  var existing=document.querySelector('.recover-overlay');if(existing){existing.remove();return}
+  var overlay=document.createElement('div');overlay.className='recover-overlay';
+  var modal=document.createElement('div');modal.className='recover-modal';
+  var closeBtn=document.createElement('button');closeBtn.className='recover-modal-close';closeBtn.innerHTML='&times;';closeBtn.onclick=function(){overlay.remove()};
+  var title=document.createElement('h3');title.textContent='\u{1F5C3} Recover Deleted User Files';
+  var bodyDiv=document.createElement('div');
+  bodyDiv.innerHTML='<div style="text-align:center;padding:20px;color:var(--text5);font-size:13px">Loading...</div>';
+  modal.appendChild(closeBtn);modal.appendChild(title);modal.appendChild(bodyDiv);
+  overlay.appendChild(modal);overlay.onclick=function(e){if(e.target===overlay)overlay.remove()};document.body.appendChild(overlay);
+
+  /* Fetch userFiles (shallow) and roleDisplayNames to find orphaned users */
+  var fileUsersRef=db.ref('userFiles');
+  fileUsersRef.once('value',function(filesSnap){
+    var allFiles=filesSnap.val()||{};
+    var fileUserKeys=Object.keys(allFiles);
+    var activeRoles=Object.keys(roleDisplayNames);
+    var orphaned=fileUserKeys.filter(function(u){return activeRoles.indexOf(u)===-1});
+    bodyDiv.innerHTML='';
+    if(!orphaned.length){
+      bodyDiv.innerHTML='<div style="text-align:center;padding:30px 0;color:var(--text5);font-size:13px"><svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:.3;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>No deleted users with orphaned files found.</div>';
+      return;
+    }
+    var subtitle=document.createElement('div');
+    subtitle.style.cssText='font-size:12px;color:var(--text5);margin-bottom:12px;text-align:center';
+    subtitle.textContent=orphaned.length+' deleted user(s) with orphaned files';
+    bodyDiv.appendChild(subtitle);
+    orphaned.forEach(function(orphanRole){
+      var userData=allFiles[orphanRole];
+      var fileCount=Object.keys(userData).length;
+      var types={};Object.keys(userData).forEach(function(k){var t=userData[k].type||'?';types[t]=(types[t]||0)+1});
+      var card=document.createElement('div');card.className='recover-user-card';
+      var nameEl=document.createElement('div');nameEl.style.cssText='font-weight:700;font-size:14px;color:var(--text);margin-bottom:4px';nameEl.textContent=orphanRole;
+      var statsEl=document.createElement('div');statsEl.style.cssText='font-size:11px;color:var(--text6)';
+      var statParts=[];
+      if(types.folder)statParts.push(types.folder+' folder'+(types.folder>1?'s':''));
+      if(types.image)statParts.push(types.image+' image'+(types.image>1?'s':''));
+      if(types.file)statParts.push(types.file+' file'+(types.file>1?'s':''));
+      if(types.video)statParts.push(types.video+' video'+(types.video>1?'s':''));
+      statsEl.textContent=fileCount+' total entries: '+statParts.join(', ');
+      card.appendChild(nameEl);card.appendChild(statsEl);
+      card.onclick=function(){_showRecoverDetail(overlay,modal,orphanRole,userData)};
+      bodyDiv.appendChild(card);
+    });
+  });
+});
+
+function _showRecoverDetail(overlay,parentModal,orphanRole,userData){
+  parentModal.style.display='none';
+  var detailModal=document.createElement('div');detailModal.className='recover-modal';
+  var closeBtn=document.createElement('button');closeBtn.className='recover-modal-close';closeBtn.innerHTML='&times;';closeBtn.onclick=function(){overlay.remove()};
+  var backBtn=document.createElement('button');
+  backBtn.style.cssText='background:none;border:1px solid var(--border);color:var(--text5);font-size:12px;padding:4px 10px;border-radius:6px;cursor:pointer;margin-bottom:10px;transition:all .15s';
+  backBtn.textContent='\u2190 Back';backBtn.onclick=function(){detailModal.remove();parentModal.style.display=''};
+  var title=document.createElement('h3');title.textContent='\u{1F5C2} '+orphanRole+"'s Files";
+
+  /* Build file tree */
+  var treeDiv=document.createElement('div');treeDiv.className='recover-tree';
+  var children={};
+  Object.keys(userData).forEach(function(k){
+    var p=userData[k].parentId||'desktop';
+    if(!children[p])children[p]=[];
+    children[p].push(k);
+  });
+  function buildTree(parentId,indent){
+    var container=document.createElement('div');
+    if(indent>0)container.className='recover-tree-indent';
+    if(!children[parentId])return container;
+    var kids=children[parentId].slice().sort(function(a,b){return(userData[a].name||'').localeCompare(userData[b].name||'')});
+    kids.forEach(function(kid){
+      var v=userData[kid];
+      var row=document.createElement('div');row.className='recover-file-item';
+      var icon=v.type==='folder'?'\u{1F4C1}':v.type==='image'?'\u{1F5BC}':v.type==='video'?'\u{1F3AC}':'\u{1F4C4}';
+      var nameSpan=document.createElement('span');nameSpan.style.cssText='flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      nameSpan.textContent=icon+' '+v.name;
+      var typeSpan=document.createElement('span');typeSpan.style.cssText='font-size:10px;color:var(--text7);flex-shrink:0';
+      typeSpan.textContent=v.type;
+      row.appendChild(nameSpan);row.appendChild(typeSpan);
+      container.appendChild(row);
+      if(v.type==='folder'){container.appendChild(buildTree(kid,indent+1))}
+    });
+    return container;
+  }
+  treeDiv.appendChild(buildTree('desktop',0));
+
+  /* Transfer controls */
+  var actionsDiv=document.createElement('div');actionsDiv.className='recover-actions';
+  actionsDiv.style.cssText='display:flex;flex-direction:column;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)';
+  var transferLabel=document.createElement('label');transferLabel.style.cssText='font-size:12px;font-weight:600;color:var(--text4)';transferLabel.textContent='Transfer all files to:';
+  var selectEl=document.createElement('select');
+  selectEl.style.cssText='width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--input-bg);color:var(--text);font-size:13px;cursor:pointer';
+  var activeRoles=Object.keys(roleDisplayNames).sort();
+  activeRoles.forEach(function(r){
+    var opt=document.createElement('option');opt.value=r;opt.textContent=(roleDisplayNames[r]||r)+' ('+r+')';selectEl.appendChild(opt);
+  });
+  var transferBtn=document.createElement('button');
+  transferBtn.style.cssText='width:100%;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#1b5e20,#2e7d32);color:#fff;font-weight:700;cursor:pointer;font-size:13px;transition:opacity .2s';
+  transferBtn.textContent='Transfer Files to Desktop';
+  transferBtn.onclick=function(){
+    var targetRole=selectEl.value;
+    if(!targetRole){showToast('Select a target user');return}
+    if(transferBtn.dataset.confirm){
+      transferBtn.disabled=true;transferBtn.textContent='Transferring...';
+      db.ref('userFiles/'+targetRole).once('value',function(existSnap){
+        var existingFiles=existSnap.val()||{};
+        var updates={};
+        Object.keys(userData).forEach(function(k){updates[k]=userData[k]});
+        db.ref('userFiles/'+targetRole).update(updates).then(function(){
+          showToast('Transferred '+Object.keys(userData).length+' files from '+orphanRole+' to '+(roleDisplayNames[targetRole]||targetRole));
+          logAudit('recover','Transferred '+Object.keys(userData).length+' files from deleted user '+orphanRole+' to '+targetRole);
+          transferBtn.textContent='Done!';transferBtn.style.background='#388e3c';
+          setTimeout(function(){overlay.remove()},1200);
+        }).catch(function(err){showToast('Error: '+err.message);transferBtn.disabled=false;transferBtn.textContent='Transfer Files to Desktop'});
+      });
+    }else{
+      transferBtn.dataset.confirm='1';transferBtn.textContent='Click again to confirm transfer to '+(roleDisplayNames[selectEl.value]||selectEl.value);
+      transferBtn.style.background='#c62828';
+      setTimeout(function(){transferBtn.textContent='Transfer Files to Desktop';transferBtn.style.background='linear-gradient(135deg,#1b5e20,#2e7d32)';delete transferBtn.dataset.confirm},4000);
+    }
+  };
+  var deleteBtn=document.createElement('button');
+  deleteBtn.style.cssText='width:100%;padding:8px;border:none;border-radius:6px;background:var(--border2);color:var(--text4);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s';
+  deleteBtn.textContent='Delete Orphaned Files Permanently';
+  deleteBtn.onclick=function(){
+    if(deleteBtn.dataset.confirm){
+      db.ref('userFiles/'+orphanRole).remove().then(function(){
+        showToast('Deleted all files for '+orphanRole);
+        logAudit('recover','Permanently deleted orphaned files for '+orphanRole);
+        overlay.remove();
+      }).catch(function(err){showToast('Error: '+err.message)});
+    }else{
+      deleteBtn.dataset.confirm='1';deleteBtn.textContent='Click again to permanently delete';deleteBtn.style.background='#a00';deleteBtn.style.color='#fff';
+      setTimeout(function(){deleteBtn.textContent='Delete Orphaned Files Permanently';deleteBtn.style.background='var(--border2)';deleteBtn.style.color='var(--text4)';delete deleteBtn.dataset.confirm},3000);
+    }
+  };
+  actionsDiv.appendChild(transferLabel);actionsDiv.appendChild(selectEl);actionsDiv.appendChild(transferBtn);actionsDiv.appendChild(deleteBtn);
+  detailModal.appendChild(closeBtn);detailModal.appendChild(backBtn);detailModal.appendChild(title);detailModal.appendChild(treeDiv);detailModal.appendChild(actionsDiv);
+  overlay.appendChild(detailModal);
+}
 
 /* ==============================
    DEMOTE POPUP
