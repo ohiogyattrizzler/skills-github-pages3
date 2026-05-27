@@ -2291,6 +2291,14 @@ db.ref('lockdown').on('value',snap=>{
     else{btn.innerHTML='&#128274; Lockdown';btn.style.background='linear-gradient(135deg,#b71c1c,#880e0e)'}
   }
   updateLockAvatar();
+  var reqBtn=document.getElementById('lockRequestToggle');
+  var reqArea=document.getElementById('lockRequestArea');
+  if(siteInLockdown){
+    if(reqBtn)reqBtn.style.display='none';
+    if(reqArea)reqArea.style.display='none';
+  }else{
+    if(reqBtn)reqBtn.style.display='';
+  }
   if(siteInLockdown&&!currentRole){_showLockdownPopup()}
   else{_hideLockdownPopup()}
   if(siteInLockdown&&currentRole){
