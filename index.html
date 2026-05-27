@@ -1935,7 +1935,10 @@ function _getLastVisibleMsgTs(){
 function _forceSaveLastSeen(){
   if(!currentRole)return;
   var ts=_getLastVisibleMsgTs();
-  if(ts>0)localStorage.setItem('docosLastSeen_'+currentRole,ts);
+  if(ts>0){
+    localStorage.setItem('docosLastSeen_'+currentRole,ts);
+    db.ref('userSettings/'+currentRole+'/globalLastSeen').set(ts);
+  }
 }
 function _saveLastSeen(){
   if(!_chatIsOpen)return;
@@ -1945,6 +1948,21 @@ function _saveLastSeen(){
 function _loadLastSeen(){
   if(!currentRole)return 0;
   return parseInt(localStorage.getItem('docosLastSeen_'+currentRole)||'0',10);
+}
+function _initLastSeenSync(){
+  if(!currentRole)return;
+  db.ref('userSettings/'+currentRole+'/globalLastSeen').on('value',function(snap){
+    var fbTs=snap.val()||0;
+    if(fbTs>_lastSeenTs){
+      _lastSeenTs=fbTs;
+      localStorage.setItem('docosLastSeen_'+currentRole,fbTs);
+      _unreadChatCount=0;
+      if(typeof _allMsgData==='object'){
+        Object.keys(_allMsgData).forEach(function(k){var m=_allMsgData[k];if((m.timestamp||0)>fbTs&&m.senderRole!==currentRole&&m.senderRole!=='System')_unreadChatCount++});
+      }
+      updateChatBadge();
+    }
+  });
 }
 
 function _clearLastSeenDivider(){_lastSeenInserted=false}
@@ -3175,11 +3193,16 @@ function loginAsRole(role){
       },500);
     }
   });
-  /* Load last-seen timestamp for new-messages divider */
-  _lastSeenTs=_loadLastSeen();
-  _lastSeenInserted=false;
-  /* Calculate unread badge from messages after last-seen */
-  (function(){var ls=_lastSeenTs;if(ls>0&&typeof _allMsgData==='object'){var cnt=0;Object.keys(_allMsgData).forEach(function(k){var m=_allMsgData[k];if((m.timestamp||0)>ls&&m.senderRole!==role&&m.senderRole!=='System')cnt++});if(cnt>0){_unreadChatCount=cnt;updateChatBadge()}}})();
+  /* Load last-seen timestamp for new-messages divider (use max of local and Firebase) */
+  var localLs=_loadLastSeen();
+  db.ref('userSettings/'+role+'/globalLastSeen').once('value',function(snap){
+    var fbLs=snap.val()||0;
+    _lastSeenTs=Math.max(localLs,fbLs);
+    if(_lastSeenTs>localLs)localStorage.setItem('docosLastSeen_'+currentRole,_lastSeenTs);
+    _lastSeenInserted=false;
+    var ls=_lastSeenTs;if(ls>0&&typeof _allMsgData==='object'){var cnt=0;Object.keys(_allMsgData).forEach(function(k){var m=_allMsgData[k];if((m.timestamp||0)>ls&&m.senderRole!==role&&m.senderRole!=='System')cnt++});if(cnt>0){_unreadChatCount=cnt;updateChatBadge()}}
+  });
+  _initLastSeenSync();
   if(typeof setupUserAppsListener==='function')setupUserAppsListener();
   if(typeof _fsSetupListener==='function')_fsSetupListener();
   if(typeof restoreDesktopConfig==='function')restoreDesktopConfig();
@@ -4094,7 +4117,7 @@ function renderMessages(data){
       var divider=document.createElement('div');divider.className='new-msgs-divider';divider.id='newMsgsDivider';
       divider.innerHTML='<span>New Messages</span>';
       var dismissBtn=document.createElement('button');dismissBtn.className='dismiss-btn';dismissBtn.innerHTML='&times;';dismissBtn.title='Dismiss';
-      dismissBtn.onclick=function(){divider.remove();var allKeys=Object.keys(_allMsgData);var maxTs=0;allKeys.forEach(function(k){var t=_allMsgData[k].timestamp||0;if(t>maxTs)maxTs=t});if(maxTs>0&&currentRole){localStorage.setItem('docosLastSeen_'+currentRole,maxTs);_lastSeenTs=maxTs}};
+      dismissBtn.onclick=function(){divider.remove();var allKeys=Object.keys(_allMsgData);var maxTs=0;allKeys.forEach(function(k){var t=_allMsgData[k].timestamp||0;if(t>maxTs)maxTs=t});if(maxTs>0&&currentRole){localStorage.setItem('docosLastSeen_'+currentRole,maxTs);db.ref('userSettings/'+currentRole+'/globalLastSeen').set(maxTs);_lastSeenTs=maxTs}};
       divider.appendChild(dismissBtn);
       messagesDiv.appendChild(divider);
       dividerInserted=true;
