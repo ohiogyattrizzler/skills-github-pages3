@@ -1375,7 +1375,7 @@ summary{font-size:calc(13px * var(--fs-scale))}
 <div class="lock-screen" id="lockScreen">
   <div class="lock-clock" id="lockClock"></div>
   <div class="lock-date" id="lockDate"></div>
-  <div class="lock-avatar" id="lockAvatarContainer">&#128274;</div>
+  <div class="lock-avatar" id="lockAvatarContainer">&#128100;</div>
   <div class="lock-username">DocOS</div>
   <div class="lock-form">
     <div style="position:relative;width:100%;margin-bottom:8px">
@@ -2268,6 +2268,7 @@ db.ref('lockdown').on('value',snap=>{
     if(siteInLockdown){btn.innerHTML='&#128275; End Lockdown';btn.style.background='linear-gradient(135deg,#2e7d32,#1b5e20)'}
     else{btn.innerHTML='&#128274; Lockdown';btn.style.background='linear-gradient(135deg,#b71c1c,#880e0e)'}
   }
+  updateLockAvatar();
   if(siteInLockdown&&currentRole){
     var isAdminOrOwner=currentRole==='Admin'||(adminUsers[currentRole]===true);
     if(!isAdminOrOwner){logout()}
@@ -2572,7 +2573,7 @@ function updateLockAvatar(){
   if(currentRole&&profilePictures[currentRole]){
     container.innerHTML='<img class="lock-pfp-img" src="'+profilePictures[currentRole]+'" alt="">';
   }else{
-    container.innerHTML='&#128274;';
+    container.innerHTML=siteInLockdown?'&#128274;':'&#128100;';
     container.className='lock-avatar';
   }
 }
