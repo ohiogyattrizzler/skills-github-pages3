@@ -56,6 +56,16 @@ input::-ms-reveal,input::-ms-clear{display:none!important}
 .lock-appeal-denied{color:#ff5555;font-size:12px;text-align:center;margin-top:6px;font-weight:600}
 .lock-branding{position:absolute;bottom:24px;font-size:13px;color:var(--text7,rgba(255,255,255,.2));font-weight:600;letter-spacing:1px}
 
+/* ===== LOCKDOWN POPUP ===== */
+.lockdown-popup-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:10000;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.lockdown-popup{background:linear-gradient(135deg,#1a1a3a,#0d1b2a);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:32px 40px;text-align:center;max-width:340px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;animation:lockdownPopupIn .3s ease}
+@keyframes lockdownPopupIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.lockdown-popup-close{position:absolute;top:10px;right:14px;background:none;border:none;color:rgba(255,255,255,.5);font-size:22px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s}
+.lockdown-popup-close:hover{color:#fff}
+.lockdown-popup-icon{font-size:48px;margin-bottom:12px;display:block}
+.lockdown-popup-title{color:#fff;font-size:18px;font-weight:700;margin-bottom:8px}
+.lockdown-popup-msg{color:rgba(255,255,255,.55);font-size:13px;line-height:1.5}
+
 /* ===== DESKTOP OS ===== */
 .desktop{position:fixed;top:0;left:0;width:100vw;height:100vh;background:linear-gradient(135deg,#0a0a1a 0%,#1a1a3a 40%,#0d1b2a 100%);overflow:hidden;display:flex;flex-direction:column}
 .desktop.hidden{display:none}
@@ -2261,6 +2271,18 @@ db.ref('chatLocked').on('value',snap=>{
   }
 });
 var siteInLockdown=false;
+function _showLockdownPopup(){
+  if(document.getElementById('lockdownPopupOverlay'))return;
+  var overlay=document.createElement('div');overlay.className='lockdown-popup-overlay';overlay.id='lockdownPopupOverlay';
+  var popup=document.createElement('div');popup.className='lockdown-popup';
+  var closeBtn=document.createElement('button');closeBtn.className='lockdown-popup-close';closeBtn.innerHTML='&times;';closeBtn.onclick=function(){overlay.remove()};
+  var icon=document.createElement('span');icon.className='lockdown-popup-icon';icon.innerHTML='&#128274;';
+  var title=document.createElement('div');title.className='lockdown-popup-title';title.textContent='Site is in Lockdown';
+  var msg=document.createElement('div');msg.className='lockdown-popup-msg';msg.textContent='Access is currently restricted. Please try again later.';
+  popup.appendChild(closeBtn);popup.appendChild(icon);popup.appendChild(title);popup.appendChild(msg);
+  overlay.appendChild(popup);document.body.appendChild(overlay);
+}
+function _hideLockdownPopup(){var el=document.getElementById('lockdownPopupOverlay');if(el)el.remove()}
 db.ref('lockdown').on('value',snap=>{
   siteInLockdown=!!snap.val();
   const btn=document.getElementById('lockdownButton');
@@ -2269,9 +2291,11 @@ db.ref('lockdown').on('value',snap=>{
     else{btn.innerHTML='&#128274; Lockdown';btn.style.background='linear-gradient(135deg,#b71c1c,#880e0e)'}
   }
   updateLockAvatar();
+  if(siteInLockdown&&!currentRole){_showLockdownPopup()}
+  else{_hideLockdownPopup()}
   if(siteInLockdown&&currentRole){
     var isAdminOrOwner=currentRole==='Admin'||(adminUsers[currentRole]===true);
-    if(!isAdminOrOwner){logout()}
+    if(!isAdminOrOwner){logout();_showLockdownPopup()}
   }
 });
 db.ref('deletedMessages').on('value',snap=>{deletedMessages=snap.val()||{}});
@@ -3322,7 +3346,7 @@ function _doLogin(uname,pass){
   /* Lockdown: only Admin (Owner) and promoted admins can log in */
   if(siteInLockdown){
     var isAdminOrOwner=role==='Admin'||(adminUsers[role]===true);
-    if(!isAdminOrOwner){loginError.textContent='Site is in lockdown. Only admins can log in.';loginError.style.color='#f44336';return}
+    if(!isAdminOrOwner){_showLockdownPopup();return}
   }
   _clearLoginAttempts();
   loginAsRole(role);
