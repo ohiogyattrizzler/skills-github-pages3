@@ -705,8 +705,19 @@ html,body{background:var(--bg);color:var(--text)}
 .tab-bar .tab:hover{color:var(--text3)}
 .tab-bar .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 
-/* Admin Panel (tabbed view) */
-.admin-panel{display:none;flex:1;overflow-y:auto;background:var(--bg2);padding:0;min-height:0}
+/* Admin Panel (sidebar view) */
+.admin-panel{display:none;flex:1;overflow:hidden;background:var(--bg2);padding:0;min-height:0}
+.admin-sidebar-layout{display:flex;height:100%;overflow:hidden}
+.admin-sidebar{width:150px;min-width:150px;background:var(--bg3);border-right:1px solid var(--border);padding:10px 0;overflow-y:auto;flex-shrink:0}
+.admin-sidebar-title{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--text7);padding:4px 14px 10px;font-weight:700}
+.admin-nav-item{padding:8px 14px;font-size:12px;color:var(--text5);cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s;border-left:3px solid transparent;white-space:nowrap}
+.admin-nav-item:hover{color:var(--text2);background:rgba(255,255,255,.03)}
+.admin-nav-item.active{color:var(--accent);background:rgba(0,170,255,.06);border-left-color:var(--accent)}
+.admin-nav-badge{min-width:16px;height:16px;border-radius:8px;background:#f44336;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:16px;padding:0 4px;margin-left:auto}
+.admin-content{flex:1;overflow-y:auto;padding:14px 16px 24px;min-width:0}
+.admin-section{display:none}
+.admin-section.active{display:block}
+.admin-section-title{font-size:14px;font-weight:700;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
 .panel-body{padding:10px 12px 24px}
 
 /* Chat content wrapper */
@@ -990,6 +1001,14 @@ summary::marker{color:var(--border2)}
   .online-tag{font-size:10px;padding:2px 6px}
 
   /* Admin panel */
+  .admin-sidebar{width:52px;min-width:52px;padding:8px 0}
+  .admin-sidebar-title{display:none}
+  .admin-nav-item{padding:10px 0;justify-content:center;font-size:16px;border-left:none;border-bottom:2px solid transparent;gap:0;overflow:hidden;text-indent:-9999px}
+  .admin-nav-item span:first-child{text-indent:0;display:inline}
+  .admin-nav-item.active{border-left:none;border-bottom-color:var(--accent)}
+  .admin-nav-badge{position:absolute;top:2px;right:2px;min-width:14px;height:14px;font-size:8px;line-height:14px}
+  .admin-nav-item{position:relative}
+  .admin-content{padding:12px 14px 24px}
   .panel-body{padding:10px 12px 24px}
   .admin-panel input,.admin-panel select,.admin-panel textarea{font-size:16px;padding:12px;border-radius:8px}
   .admin-panel button{padding:12px;font-size:14px;border-radius:8px;min-height:44px}
@@ -1529,103 +1548,111 @@ summary{font-size:calc(13px * var(--fs-scale))}
 
 <!-- Admin Panel (standalone app) -->
 <div class="admin-panel" id="adminPanel" style="display:none">
-  <div class="panel-body">
-    <details>
-      <summary><span class="section-icon">&#128101;</span> User Actions</summary>
-      <label>&#128100; Target User</label>
-      <div class="user-select-wrapper"><select id="userSelect"></select></div>
-      <label>&#9203; Duration</label>
-      <div class="preset-row">
-        <span class="preset-chip" data-ms="300000">5 min</span>
-        <span class="preset-chip" data-ms="900000">15 min</span>
-        <span class="preset-chip" data-ms="3600000">1 hour</span>
-        <span class="preset-chip" data-ms="86400000">1 day</span>
-        <span class="preset-chip" data-ms="custom">Custom</span>
+  <div class="admin-sidebar-layout">
+    <div class="admin-sidebar">
+      <div class="admin-sidebar-title">Panel</div>
+      <div class="admin-nav-item active" data-section="sec-useractions"><span>&#128101;</span> Actions</div>
+      <div class="admin-nav-item" data-section="sec-penalties"><span>&#128683;</span> Penalties</div>
+      <div class="admin-nav-item" data-section="sec-announcements"><span>&#128227;</span> Announce</div>
+      <div class="admin-nav-item" data-section="sec-feedback"><span>&#128172;</span> Feedback <span id="feedbackNavBadge" class="admin-nav-badge" style="display:none"></span></div>
+      <div class="admin-nav-item" data-section="sec-usermgmt" id="userMgmtNavItem"><span>&#128100;</span> Users</div>
+      <div class="admin-nav-item" data-section="sec-tools" id="adminToolsNavItem"><span>&#128465;</span> Tools</div>
+    </div>
+    <div class="admin-content">
+      <div class="admin-section active" id="sec-useractions">
+        <div class="admin-section-title"><span>&#128101;</span> User Actions</div>
+        <label>&#128100; Target User</label>
+        <div class="user-select-wrapper"><select id="userSelect"></select></div>
+        <label>&#9203; Duration</label>
+        <div class="preset-row">
+          <span class="preset-chip" data-ms="300000">5 min</span>
+          <span class="preset-chip" data-ms="900000">15 min</span>
+          <span class="preset-chip" data-ms="3600000">1 hour</span>
+          <span class="preset-chip" data-ms="86400000">1 day</span>
+          <span class="preset-chip" data-ms="custom">Custom</span>
+        </div>
+        <div class="custom-duration" id="customDuration">
+          <input type="number" id="durationInput" placeholder="Amount" min="1">
+          <select id="unitSelect">
+            <option value="seconds">Sec</option>
+            <option value="minutes" selected>Min</option>
+            <option value="hours">Hr</option>
+            <option value="days">Day</option>
+          </select>
+        </div>
+        <input type="hidden" id="presetMs" value="">
+        <div class="action-btn-row">
+          <button class="btn-mute" id="muteButton">&#128263; Mute</button>
+          <button class="btn-ban" id="banButton">&#128683; Ban</button>
+        </div>
+        <div class="action-btn-row" style="margin-top:8px">
+          <button class="btn-limit" id="limitWordsBtn">&#128214; Limit Words</button>
+        </div>
       </div>
-      <div class="custom-duration" id="customDuration">
-        <input type="number" id="durationInput" placeholder="Amount" min="1">
-        <select id="unitSelect">
-          <option value="seconds">Sec</option>
-          <option value="minutes" selected>Min</option>
-          <option value="hours">Hr</option>
-          <option value="days">Day</option>
-        </select>
+      <div class="admin-section" id="sec-penalties">
+        <div class="admin-section-title"><span>&#128683;</span> Muted / Banned / Word Limited</div>
+        <div id="mutedList"></div>
+        <div id="bannedList"></div>
+        <div style="margin-top:8px">
+          <label style="font-size:12px;color:var(--text5);display:block;margin-bottom:6px">Word-limited Users</label>
+          <div id="wordLimitsList" style="max-height:160px;overflow:auto;border:1px solid var(--border);background:var(--bg2);padding:8px;border-radius:8px;font-size:13px;color:var(--text5)">None</div>
+        </div>
       </div>
-      <input type="hidden" id="presetMs" value="">
-      
-      
-      <div class="action-btn-row">
-        <button class="btn-mute" id="muteButton">&#128263; Mute</button>
-        <button class="btn-ban" id="banButton">&#128683; Ban</button>
+      <div class="admin-section" id="sec-announcements">
+        <div class="admin-section-title"><span>&#128227;</span> Announcement</div>
+        <label style="color:var(--accent);font-size:12px;margin-bottom:4px;display:block">Current Announcements</label>
+        <div id="activeAnnouncementsList"><span style="color:var(--text7);font-size:12px">No active announcements</span></div>
+        <div class="section-divider"></div>
+        <label style="font-size:12px;margin-bottom:4px;display:block">New Announcement</label>
+        <textarea id="announcementInput" rows="3" placeholder="Type announcement..."></textarea>
+        <button id="announcementButton">Send announcement</button>
       </div>
-      <div class="action-btn-row" style="margin-top:8px">
-        <button class="btn-limit" id="limitWordsBtn">&#128214; Limit Words</button>
+      <div class="admin-section" id="sec-feedback">
+        <div class="admin-section-title"><span>&#128172;</span> Feedback <span id="feedbackBadge" style="display:none;min-width:16px;height:16px;border-radius:8px;background:#f44336;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:16px;padding:0 4px;margin-left:4px;vertical-align:middle"></span></div>
+        <label style="color:#66bb6a;font-weight:600">Account Requests <span id="acctReqBadge" style="display:none;min-width:14px;height:14px;border-radius:7px;background:#66bb6a;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:14px;padding:0 3px;margin-left:4px;vertical-align:middle"></span></label>
+        <div id="acctReqList"></div>
+        <div class="section-divider"></div>
+        <label style="color:#ff9800;font-weight:600">Appeals <span id="appealsBadge" style="display:none;min-width:14px;height:14px;border-radius:7px;background:#ff9800;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:14px;padding:0 3px;margin-left:4px;vertical-align:middle"></span></label>
+        <div id="appealsList"></div>
+        <div class="section-divider"></div>
+        <label style="color:#42a5f5;font-weight:600">Recommendations <span id="recosBadge" style="display:none;min-width:14px;height:14px;border-radius:7px;background:#42a5f5;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:14px;padding:0 3px;margin-left:4px;vertical-align:middle"></span></label>
+        <div id="recoList"></div>
       </div>
-    </details>
-    <details>
-      <summary><span class="section-icon">&#128683;</span> Muted / Banned / Word Limited</summary>
-      <div id="mutedList"></div>
-      <div id="bannedList"></div>
-      <div style="margin-top:8px">
-        <label style="font-size:12px;color:var(--text5);display:block;margin-bottom:6px">Word-limited Users</label>
-        <div id="wordLimitsList" style="max-height:160px;overflow:auto;border:1px solid var(--border);background:var(--bg2);padding:8px;border-radius:8px;font-size:13px;color:var(--text5)">None</div>
+      <div class="admin-section" id="sec-usermgmt">
+        <div class="admin-section-title"><span>&#128100;</span> User Management</div>
+        <div id="userMgmtList"></div>
+        <div class="section-divider"></div>
+        <label>Add New User</label>
+        <input type="text" id="newUserUsername" placeholder="Username (for login)">
+        <input type="text" id="newUserName" placeholder="Display name (real name)">
+        <input type="text" id="newUserPasscode" placeholder="Password">
+        <label>Role</label>
+        <select id="newUserRole"><option value="Member">Member</option><option value="Admin">Admin</option></select>
+        <button id="addUserButton" style="background:linear-gradient(135deg,#2e7d32,#1b5e20)">Add User</button>
       </div>
-    </details>
-    <details>
-      <summary><span class="section-icon">&#128227;</span> Announcement</summary>
-      <label style="color:var(--accent);font-size:12px;margin-bottom:4px;display:block">Current Announcements</label>
-      <div id="activeAnnouncementsList"><span style="color:var(--text7);font-size:12px">No active announcements</span></div>
-      <div class="section-divider"></div>
-      <label style="font-size:12px;margin-bottom:4px;display:block">New Announcement</label>
-      <textarea id="announcementInput" rows="3" placeholder="Type announcement..."></textarea>
-      <button id="announcementButton">Send announcement</button>
-    </details>
-    <details>
-      <summary><span class="section-icon">&#128172;</span> Feedback <span id="feedbackBadge" style="display:none;min-width:16px;height:16px;border-radius:8px;background:#f44336;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:16px;padding:0 4px;margin-left:4px;vertical-align:middle"></span></summary>
-      <label style="color:#66bb6a;font-weight:600">Account Requests <span id="acctReqBadge" style="display:none;min-width:14px;height:14px;border-radius:7px;background:#66bb6a;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:14px;padding:0 3px;margin-left:4px;vertical-align:middle"></span></label>
-      <div id="acctReqList"></div>
-      <div class="section-divider"></div>
-      <label style="color:#ff9800;font-weight:600">Appeals <span id="appealsBadge" style="display:none;min-width:14px;height:14px;border-radius:7px;background:#ff9800;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:14px;padding:0 3px;margin-left:4px;vertical-align:middle"></span></label>
-      <div id="appealsList"></div>
-      <div class="section-divider"></div>
-      <label style="color:#42a5f5;font-weight:600">Recommendations <span id="recosBadge" style="display:none;min-width:14px;height:14px;border-radius:7px;background:#42a5f5;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:14px;padding:0 3px;margin-left:4px;vertical-align:middle"></span></label>
-      <div id="recoList"></div>
-    </details>
-    <details id="userMgmtSection">
-      <summary><span class="section-icon">&#128100;</span> User Management</summary>
-      <div id="userMgmtList"></div>
-      <div class="section-divider"></div>
-      <label>Add New User</label>
-      <input type="text" id="newUserUsername" placeholder="Username (for login)">
-      <input type="text" id="newUserName" placeholder="Display name (real name)">
-      <input type="text" id="newUserPasscode" placeholder="Password">
-      <label>Role</label>
-      <select id="newUserRole"><option value="Member">Member</option><option value="Admin">Admin</option></select>
-      <button id="addUserButton" style="background:linear-gradient(135deg,#2e7d32,#1b5e20)">Add User</button>
-    </details>
-    <details id="adminToolsSection">
-      <summary><span class="section-icon">&#128465;</span> Admin Tools</summary>
-      <button id="lockdownButton" style="background:linear-gradient(135deg,#b71c1c,#880e0e)">&#128274; Lockdown</button>
-      <button style="background:linear-gradient(135deg,#c62828,#b71c1c)" id="deleteAllChatButton">Delete All Chat</button>
-      <button style="background:linear-gradient(135deg,#555,#444)" id="chatCacheButton">&#128451; Chat Cache</button>
-      <button style="background:linear-gradient(135deg,#37474f,#263238)" id="deviceIdsButton">&#128274; Device IDs</button>
-      <button style="background:linear-gradient(135deg,#1b5e20,#2e7d32)" id="recoverFilesButton">&#128451; Recover Deleted User Files</button>
-      <div class="section-divider"></div>
-      <label>&#9881; Settings</label>
-      <div class="toggle-row">
-        <label>Show banned/muted in online bar</label>
-        <label class="toggle-switch"><input type="checkbox" id="togglePenalty" checked><span class="toggle-slider"></span></label>
+      <div class="admin-section" id="sec-tools">
+        <div class="admin-section-title"><span>&#128465;</span> Admin Tools</div>
+        <button id="lockdownButton" style="background:linear-gradient(135deg,#b71c1c,#880e0e)">&#128274; Lockdown</button>
+        <button style="background:linear-gradient(135deg,#c62828,#b71c1c)" id="deleteAllChatButton">Delete All Chat</button>
+        <button style="background:linear-gradient(135deg,#555,#444)" id="chatCacheButton">&#128451; Chat Cache</button>
+        <button style="background:linear-gradient(135deg,#37474f,#263238)" id="deviceIdsButton">&#128274; Device IDs</button>
+        <button style="background:linear-gradient(135deg,#1b5e20,#2e7d32)" id="recoverFilesButton">&#128451; Recover Deleted User Files</button>
+        <div class="section-divider"></div>
+        <label>&#9881; Settings</label>
+        <div class="toggle-row">
+          <label>Show banned/muted in online bar</label>
+          <label class="toggle-switch"><input type="checkbox" id="togglePenalty" checked><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row">
+          <label>&#9203; Rate Limiting (3 msg / 5s)</label>
+          <label class="toggle-switch"><input type="checkbox" id="toggleRateLimit"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="section-divider"></div>
+        <label>&#128218; Audit Log</label>
+        <button id="clearAuditLogBtn" class="btn-clear" style="margin-bottom:4px">Clear Audit Log</button>
+        <div class="audit-log-list" id="auditLogList"></div>
       </div>
-      <div class="toggle-row">
-        <label>&#9203; Rate Limiting (3 msg / 5s)</label>
-        <label class="toggle-switch"><input type="checkbox" id="toggleRateLimit"><span class="toggle-slider"></span></label>
-      </div>
-      <div class="section-divider"></div>
-      <label>&#128218; Audit Log</label>
-      <button id="clearAuditLogBtn" class="btn-clear" style="margin-bottom:4px">Clear Audit Log</button>
-      <div class="audit-log-list" id="auditLogList"></div>
-
-    </details>
+    </div>
   </div>
 </div>
 </div>
@@ -2459,8 +2486,11 @@ function handleRoleChange(type){
   document.getElementById('gearWrapper').style.display=isAdmin?'flex':'none';
   document.getElementById('modDesktopIcon').style.display=isAdmin?'':'none';
   if(typeof updateAppDesignerVisibility==='function')updateAppDesignerVisibility();
-  document.getElementById('userMgmtSection').style.display=currentRole==='Admin'?'':'none';
-  document.getElementById('adminToolsSection').style.display=currentRole==='Admin'?'':'none';
+  var _isOwner=currentRole==='Admin';
+  document.getElementById('sec-usermgmt').style.display=_isOwner?'':'none';
+  document.getElementById('sec-tools').style.display=_isOwner?'':'none';
+  document.getElementById('userMgmtNavItem').style.display=_isOwner?'':'none';
+  document.getElementById('adminToolsNavItem').style.display=_isOwner?'':'none';
   if(type==='demoted'){
     for(var id in openWindows){if(openWindows[id].appId==='mod')closeWindow(id)}
     adminPanel.style.display='none';
@@ -3127,8 +3157,11 @@ function loginAsRole(role){
     var modLabel=document.getElementById('iconLabel-mod');
     if(modLabel)modLabel.textContent=modTitle;
   }
-  document.getElementById('userMgmtSection').style.display=currentRole==='Admin'?'':'none';
-  document.getElementById('adminToolsSection').style.display=currentRole==='Admin'?'':'none';
+  var _isOwnerLogin=currentRole==='Admin';
+  document.getElementById('sec-usermgmt').style.display=_isOwnerLogin?'':'none';
+  document.getElementById('sec-tools').style.display=_isOwnerLogin?'':'none';
+  document.getElementById('userMgmtNavItem').style.display=_isOwnerLogin?'':'none';
+  document.getElementById('adminToolsNavItem').style.display=_isOwnerLogin?'':'none';
   document.getElementById('taskbarRecoBtn').style.display='flex';
   document.getElementById('taskbarLogoutBtn').style.display='flex';
   document.getElementById('headerThemeSlot').style.display='block';
@@ -4319,6 +4352,8 @@ function updateNotifBadge(){
   /* Update Feedback section badges */
   var fb=document.getElementById('feedbackBadge');
   if(fb){if(count>0){fb.style.display='inline-block';fb.textContent=count}else{fb.style.display='none'}}
+  var fnb=document.getElementById('feedbackNavBadge');
+  if(fnb){if(count>0){fnb.style.display='inline-block';fnb.textContent=count}else{fnb.style.display='none'}}
   /* Individual feedback type badges */
   var ab=document.getElementById('appealsBadge');
   if(ab){if(appealCount>0){ab.style.display='inline-block';ab.textContent=appealCount}else{ab.style.display='none'}}
@@ -4650,6 +4685,21 @@ document.getElementById('toggleRateLimit').addEventListener('change',function(){
   db.ref('rateLimitEnabled').set(this.checked);
   logAudit('lock',(this.checked?'Enabled':'Disabled')+' rate limiting');
 });
+/* Admin sidebar navigation */
+(function(){
+  var navItems=document.querySelectorAll('.admin-nav-item');
+  navItems.forEach(function(item){
+    item.addEventListener('click',function(){
+      var secId=this.getAttribute('data-section');
+      if(!secId)return;
+      navItems.forEach(function(n){n.classList.remove('active')});
+      this.classList.add('active');
+      document.querySelectorAll('.admin-section').forEach(function(s){s.classList.remove('active')});
+      var sec=document.getElementById(secId);
+      if(sec)sec.classList.add('active');
+    });
+  });
+})();
 document.getElementById('lockdownButton').addEventListener('click',function(){
   if(!isAnyAdmin())return;
   db.ref('lockdown').set(!siteInLockdown).then(()=>logAudit('lock',(siteInLockdown?'Ended':'Activated')+' lockdown')).catch(console.error);
