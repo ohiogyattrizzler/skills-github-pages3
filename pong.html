@@ -5,20 +5,23 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pong Multiplayer</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gun/sea.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; font-family: 'Segoe UI', -apple-system, sans-serif; background: #0a0a0a; color: #fff; overflow: hidden; }
+html, body { height: 100%; font-family: 'Segoe UI', -apple-system, sans-serif; background: #0a0a0a; color: #fff; overflow-x: hidden; }
 
-.container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; }
+.container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 20px; }
 
-.lobby-screen { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; max-width: 460px; }
+.lobby-screen { display: flex; flex-direction: column; align-items: center; gap: 16px; width: 100%; max-width: 500px; }
 .lobby-screen h1 { font-size: 42px; font-weight: 800; background: linear-gradient(135deg, #00ff88, #00aaff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -1px; text-align: center; }
 .lobby-screen h1 span { font-size: 14px; display: block; font-weight: 400; -webkit-text-fill-color: rgba(255,255,255,.5); background: none; letter-spacing: 2px; margin-top: 4px; }
 
 .input-group { display: flex; gap: 10px; width: 100%; }
-.input-group input { flex: 1; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color: #fff; font-size: 14px; outline: none; transition: border-color .2s; }
-.input-group input:focus { border-color: #00aaff; }
+.input-group input, .input-group select { flex: 1; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.06); color: #fff; font-size: 14px; outline: none; transition: border-color .2s; }
+.input-group input:focus, .input-group select:focus { border-color: #00aaff; }
 .input-group input::placeholder { color: rgba(255,255,255,.3); }
+.input-group select option { background: #1a1a1a; color: #fff; }
 
 .btn { padding: 12px 24px; border-radius: 10px; border: none; font-weight: 700; font-size: 14px; cursor: pointer; transition: all .2s; }
 .btn-primary { background: linear-gradient(135deg, #00ff88, #00aaff); color: #000; }
@@ -27,9 +30,11 @@ html, body { height: 100%; font-family: 'Segoe UI', -apple-system, sans-serif; b
 .btn-secondary:hover { background: rgba(255,255,255,.15); }
 .btn-danger { background: #ff4444; color: #fff; }
 .btn-danger:hover { opacity: .85; }
+.btn-challenge { background: linear-gradient(135deg, #ff8800, #ff4488); color: #fff; padding: 6px 14px; font-size: 12px; border-radius: 8px; }
+.btn-challenge:hover { opacity: .85; }
 .btn-full { width: 100%; }
 
-.divider { width: 100%; height: 1px; background: rgba(255,255,255,.1); margin: 5px 0; }
+.divider { width: 100%; height: 1px; background: rgba(255,255,255,.1); margin: 4px 0; }
 .section-label { font-size: 12px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: 1px; align-self: flex-start; }
 
 .lobby-code { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #00ff88, #00aaff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: 6px; padding: 15px 25px; border: 2px dashed rgba(0,170,255,.3); border-radius: 12px; cursor: pointer; transition: border-color .2s; }
@@ -69,6 +74,24 @@ canvas { border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background
 .status-dot.yellow { background: #ffaa00; box-shadow: 0 0 6px #ffaa00; }
 .status-msg { font-size: 13px; color: rgba(255,255,255,.5); }
 
+/* Online Players Panel */
+.online-panel { width: 100%; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.1); border-radius: 12px; padding: 14px; max-height: 200px; overflow-y: auto; }
+.online-panel h3 { font-size: 13px; color: rgba(255,255,255,.5); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.online-panel h3 .count { background: #00ff88; color: #000; font-size: 11px; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+.online-list { display: flex; flex-direction: column; gap: 6px; }
+.online-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: rgba(255,255,255,.04); border-radius: 8px; border: 1px solid rgba(255,255,255,.06); }
+.online-item .name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.online-item .name::before { content: ''; width: 6px; height: 6px; background: #00ff88; border-radius: 50%; }
+.online-item.busy .name::before { background: #ffaa00; }
+.online-empty { font-size: 12px; color: rgba(255,255,255,.3); text-align: center; padding: 10px; }
+
+/* Challenge notification */
+.challenge-toast { display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid rgba(0,170,255,.3); border-radius: 12px; padding: 16px 24px; z-index: 100; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,.5); animation: slideDown .3s ease; }
+@keyframes slideDown { from { top: -60px; opacity: 0; } to { top: 20px; opacity: 1; } }
+.challenge-toast .challenge-text { font-size: 14px; margin-bottom: 12px; }
+.challenge-toast .challenge-text strong { color: #00aaff; }
+.challenge-toast .challenge-buttons { display: flex; gap: 10px; justify-content: center; }
+
 @media (max-width: 850px) {
     canvas { width: 100% !important; height: auto !important; }
     .mobile-controls { display: flex; }
@@ -76,6 +99,14 @@ canvas { border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background
 </style>
 </head>
 <body>
+<div class="challenge-toast" id="challengeToast">
+    <div class="challenge-text" id="challengeText"><strong>Someone</strong> wants to play!</div>
+    <div class="challenge-buttons">
+        <button class="btn btn-primary" id="acceptChallenge">Accept</button>
+        <button class="btn btn-secondary" id="declineChallenge">Decline</button>
+    </div>
+</div>
+
 <div class="container">
     <div class="lobby-screen" id="lobbyScreen">
         <h1>PONG<span>MULTIPLAYER</span></h1>
@@ -83,11 +114,27 @@ canvas { border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background
         <div class="input-group">
             <input type="text" id="playerName" placeholder="Your name" maxlength="16">
         </div>
+        <div class="input-group">
+            <select id="winScore">
+                <option value="3">First to 3</option>
+                <option value="5" selected>First to 5</option>
+                <option value="7">First to 7</option>
+                <option value="10">First to 10</option>
+                <option value="15">First to 15</option>
+                <option value="21">First to 21</option>
+            </select>
+        </div>
         <div class="divider"></div>
-        <span class="section-label">Create a lobby</span>
+        <span class="section-label">Online Players</span>
+        <div class="online-panel" id="onlinePanel">
+            <h3>Online <span class="count" id="onlineCount">0</span></h3>
+            <div class="online-list" id="onlineList">
+                <div class="online-empty">No one else is online yet...</div>
+            </div>
+        </div>
+        <div class="divider"></div>
+        <span class="section-label">Or create/join with code</span>
         <button class="btn btn-primary btn-full" id="createBtn">Create Game</button>
-        <div class="divider"></div>
-        <span class="section-label">Join a friend's lobby</span>
         <div class="input-group">
             <input type="text" id="joinCode" placeholder="Enter lobby code" maxlength="10">
             <button class="btn btn-secondary" id="joinBtn">Join</button>
@@ -131,12 +178,11 @@ canvas { border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background
             <button class="mobile-btn" id="upBtn">&#9650;</button>
             <button class="mobile-btn" id="downBtn">&#9660;</button>
         </div>
-        <div class="game-footer">Use W/S or Arrow Keys to move | First to 5 wins</div>
+        <div class="game-footer" id="gameFooter">Use W/S or Arrow Keys to move | First to 5 wins</div>
     </div>
 </div>
 
 <script>
-// === GAME GLOBALS (accessible for debugging) ===
 var GAME = {};
 
 (function() {
@@ -147,6 +193,7 @@ var GAME = {};
     var isHost = false, myNum = 0;
     var gameRunning = false, gameInterval = null;
     var myDir = 0, remoteDir = 0;
+    var myPeerId = '';
 
     var state = { bx: W/2, by: H/2, bdx: BALL_SPEED, bdy: 2, p1y: H/2-PH/2, p2y: H/2-PH/2, s1: 0, s2: 0, winner: 0 };
 
@@ -157,6 +204,137 @@ var GAME = {};
     var score1El = $('score1'), score2El = $('score2'), p1Label = $('p1Label'), p2Label = $('p2Label');
     var gameOverOverlay = $('gameOverOverlay'), gameOverTitle = $('gameOverTitle'), finalScoreEl = $('finalScore');
     var statusDot = $('statusDot'), statusText = $('statusText');
+    var winScoreSelect = $('winScore');
+    var challengeToast = $('challengeToast'), challengeTextEl = $('challengeText');
+    var pendingChallenger = null;
+
+    // === GUN.JS ONLINE PRESENCE ===
+    var gun = Gun(['https://gun-manhattan.herokuapp.com/gun']);
+    var onlinePlayers = gun.get('clever-pong-online-v1');
+    var myOnlineRef = null;
+    var knownPlayers = {};
+
+    function getMyName() {
+        return playerNameInput.value.trim() || 'Anonymous';
+    }
+
+    function goOnline() {
+        if (!myPeerId) return;
+        var name = getMyName();
+        myOnlineRef = onlinePlayers.get(myPeerId);
+        myOnlineRef.put({ name: name, peerId: myPeerId, ts: Date.now(), status: 'online' });
+    }
+
+    function goOffline() {
+        if (myOnlineRef) {
+            myOnlineRef.put({ name: null, peerId: null, ts: null, status: null });
+        }
+    }
+
+    function setBusy() {
+        if (myOnlineRef) myOnlineRef.put({ status: 'busy' });
+    }
+
+    function setAvailable() {
+        if (myOnlineRef) myOnlineRef.put({ status: 'online' });
+    }
+
+    // Keep alive every 15s
+    setInterval(function() {
+        if (myOnlineRef && myPeerId) {
+            myOnlineRef.put({ ts: Date.now() });
+        }
+    }, 15000);
+
+    // Listen for online players
+    onlinePlayers.map().on(function(data, key) {
+        if (!data) { delete knownPlayers[key]; renderOnlineList(); return; }
+        if (!data.name || !data.peerId || data.status === null) {
+            delete knownPlayers[key];
+            renderOnlineList();
+            return;
+        }
+        // Expire after 30s of no update
+        if (Date.now() - data.ts > 30000) {
+            delete knownPlayers[key];
+            renderOnlineList();
+            return;
+        }
+        if (key === myPeerId) return;
+        knownPlayers[key] = data;
+        renderOnlineList();
+    });
+
+    // Periodically clean stale entries
+    setInterval(function() {
+        var now = Date.now();
+        var changed = false;
+        for (var k in knownPlayers) {
+            if (now - knownPlayers[k].ts > 30000) {
+                delete knownPlayers[k];
+                changed = true;
+            }
+        }
+        if (changed) renderOnlineList();
+    }, 10000);
+
+    function renderOnlineList() {
+        var listEl = $('onlineList');
+        var countEl = $('onlineCount');
+        var players = Object.values(knownPlayers);
+        countEl.textContent = players.length;
+
+        if (players.length === 0) {
+            listEl.innerHTML = '<div class="online-empty">No one else is online yet...</div>';
+            return;
+        }
+
+        var html = '';
+        players.forEach(function(p) {
+            var busyClass = p.status === 'busy' ? ' busy' : '';
+            var btnHtml = p.status === 'busy' ? '<span style="font-size:11px;color:rgba(255,255,255,.3)">In game</span>' :
+                '<button class="btn btn-challenge" onclick="GAME.challenge(\'' + p.peerId + '\')">Challenge</button>';
+            html += '<div class="online-item' + busyClass + '"><span class="name">' + escapeHtml(p.name) + '</span>' + btnHtml + '</div>';
+        });
+        listEl.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // === CHALLENGE SYSTEM ===
+    GAME.challenge = function(peerId) {
+        if (conn) return;
+        if (!peer || !peer.open) { alert('Still connecting...'); return; }
+        isHost = false;
+        myNum = 2;
+        WIN_SCORE = parseInt(winScoreSelect.value) || 5;
+        conn = peer.connect(peerId, { reliable: true });
+        wireConn();
+        setBusy();
+    };
+
+    $('acceptChallenge').addEventListener('click', function() {
+        challengeToast.style.display = 'none';
+        if (pendingChallenger && conn) {
+            isHost = true;
+            myNum = 1;
+            WIN_SCORE = parseInt(winScoreSelect.value) || 5;
+            wireConn();
+            setBusy();
+        }
+        pendingChallenger = null;
+    });
+
+    $('declineChallenge').addEventListener('click', function() {
+        challengeToast.style.display = 'none';
+        if (conn) conn.close();
+        conn = null;
+        pendingChallenger = null;
+    });
 
     // Expose for debugging
     GAME.getState = function() { return { isHost: isHost, myDir: myDir, remoteDir: remoteDir, gameRunning: gameRunning, connOpen: conn && conn.open, state: state }; };
@@ -175,19 +353,29 @@ var GAME = {};
         var code = Math.random().toString(36).substring(2, 8);
         peer = new Peer('pong-' + code, { debug: 0 });
 
-        peer.on('open', function() {
+        peer.on('open', function(id) {
+            myPeerId = id;
             statusDot.className = 'status-dot green';
             statusText.textContent = 'Ready';
+            goOnline();
         });
 
         peer.on('connection', function(c) {
             if (conn) { c.close(); return; }
             conn = c;
-            wireConn();
+            // Show challenge notification
+            var challengerName = 'Someone';
+            // Try to look up name
+            for (var k in knownPlayers) {
+                if (k === c.peer) { challengerName = knownPlayers[k].name; break; }
+            }
+            pendingChallenger = c.peer;
+            challengeTextEl.innerHTML = '<strong>' + escapeHtml(challengerName) + '</strong> wants to play!';
+            challengeToast.style.display = 'block';
         });
 
         peer.on('error', function(err) {
-            if (err.type === 'peer-unavailable') alert('Lobby not found. Check the code.');
+            if (err.type === 'peer-unavailable') alert('Player not found or offline.');
             else if (err.type === 'unavailable-id') setTimeout(initPeer, 500);
             else console.error('Peer error:', err);
         });
@@ -200,14 +388,11 @@ var GAME = {};
     }
 
     function wireConn() {
-        // Register data handler immediately
         conn.on('data', function(raw) {
             var data;
             try {
                 data = (typeof raw === 'string') ? JSON.parse(raw) : raw;
-            } catch(e) {
-                data = raw;
-            }
+            } catch(e) { data = raw; }
             if (!data || !data.t) return;
             onData(data);
         });
@@ -215,6 +400,7 @@ var GAME = {};
         conn.on('close', function() {
             gameRunning = false;
             stopGameLoop();
+            setAvailable();
             alert('Opponent disconnected.');
             backToLobby();
         });
@@ -223,10 +409,8 @@ var GAME = {};
             console.error('Conn error:', err);
         });
 
-        // Handle open - check if already open OR wait for open event
         function onOpen() {
-            console.log('Connection open! isHost:', isHost);
-            send({ t: 'hi', name: playerNameInput.value || 'Player' });
+            send({ t: 'hi', name: getMyName(), winScore: WIN_SCORE });
             if (isHost) {
                 setTimeout(startNewGame, 500);
             } else {
@@ -244,14 +428,19 @@ var GAME = {};
     function onData(data) {
         switch(data.t) {
             case 'hi':
-                if (isHost) p2Label.textContent = data.name || 'Player 2';
-                else p1Label.textContent = data.name || 'Player 1';
+                if (isHost) {
+                    p2Label.textContent = data.name || 'Player 2';
+                    if (data.winScore) WIN_SCORE = data.winScore;
+                } else {
+                    p1Label.textContent = data.name || 'Player 1';
+                    if (data.winScore) WIN_SCORE = data.winScore;
+                }
+                $('gameFooter').textContent = 'Use W/S or Arrow Keys to move | First to ' + WIN_SCORE + ' wins';
                 break;
             case 'dir':
                 remoteDir = data.d;
                 break;
             case 'gs':
-                // Guest receives full state from host
                 state = data.s;
                 renderFrame();
                 score1El.textContent = state.s1;
@@ -276,13 +465,19 @@ var GAME = {};
     }
 
     // === LOBBY UI ===
+    playerNameInput.addEventListener('input', function() {
+        if (myOnlineRef) myOnlineRef.put({ name: getMyName() });
+    });
+
     $('createBtn').addEventListener('click', function() {
         if (!peer || !peer.open) { alert('Still connecting...'); return; }
         isHost = true;
         myNum = 1;
+        WIN_SCORE = parseInt(winScoreSelect.value) || 5;
         lobbyCodeEl.textContent = peer.id.replace('pong-', '').toUpperCase();
         lobbyScreen.style.display = 'none';
         waitingScreen.style.display = 'flex';
+        setBusy();
     });
 
     lobbyCodeEl.addEventListener('click', function() {
@@ -298,12 +493,15 @@ var GAME = {};
         if (!peer || !peer.open) { alert('Still connecting...'); return; }
         isHost = false;
         myNum = 2;
+        WIN_SCORE = parseInt(winScoreSelect.value) || 5;
         conn = peer.connect('pong-' + code, { reliable: true });
         wireConn();
+        setBusy();
     });
 
     $('cancelBtn').addEventListener('click', function() {
         if (conn) conn.close();
+        setAvailable();
         backToLobby();
     });
 
@@ -319,6 +517,7 @@ var GAME = {};
 
     $('leaveBtn').addEventListener('click', function() {
         if (conn) conn.close();
+        setAvailable();
         backToLobby();
     });
 
@@ -336,7 +535,8 @@ var GAME = {};
     function startNewGame() {
         resetState();
         gameRunning = true;
-        p1Label.textContent = playerNameInput.value || 'Player 1';
+        p1Label.textContent = getMyName();
+        $('gameFooter').textContent = 'Use W/S or Arrow Keys to move | First to ' + WIN_SCORE + ' wins';
         showGame();
         gameOverOverlay.style.display = 'none';
         send({ t: 'go' });
@@ -345,7 +545,6 @@ var GAME = {};
 
     function startGameLoop() {
         stopGameLoop();
-        // Use setInterval so physics runs even if tab is in background
         gameInterval = setInterval(tick, 1000/60);
     }
 
@@ -356,22 +555,17 @@ var GAME = {};
     function tick() {
         if (!gameRunning) { stopGameLoop(); return; }
 
-        // Apply paddle movements
-        // Host: myDir = p1 (left/green), remoteDir = p2 (right/blue)
         state.p1y += myDir * PADDLE_SPEED;
         state.p2y += remoteDir * PADDLE_SPEED;
         state.p1y = Math.max(0, Math.min(H - PH, state.p1y));
         state.p2y = Math.max(0, Math.min(H - PH, state.p2y));
 
-        // Ball
         state.bx += state.bdx;
         state.by += state.bdy;
 
-        // Wall bounce
         if (state.by <= BALL_R) { state.by = BALL_R; state.bdy = Math.abs(state.bdy); }
         if (state.by >= H - BALL_R) { state.by = H - BALL_R; state.bdy = -Math.abs(state.bdy); }
 
-        // Left paddle collision
         if (state.bdx < 0 && state.bx - BALL_R <= 20 + PW && state.bx > 15 &&
             state.by >= state.p1y && state.by <= state.p1y + PH) {
             state.bx = 20 + PW + BALL_R;
@@ -379,7 +573,6 @@ var GAME = {};
             state.bdy = ((state.by - state.p1y) / PH - 0.5) * BALL_SPEED * 2.5;
         }
 
-        // Right paddle collision
         if (state.bdx > 0 && state.bx + BALL_R >= W - 20 - PW && state.bx < W - 15 &&
             state.by >= state.p2y && state.by <= state.p2y + PH) {
             state.bx = W - 20 - PW - BALL_R;
@@ -387,11 +580,9 @@ var GAME = {};
             state.bdy = ((state.by - state.p2y) / PH - 0.5) * BALL_SPEED * 2.5;
         }
 
-        // Speed cap
         var spd = Math.sqrt(state.bdx * state.bdx + state.bdy * state.bdy);
         if (spd > 12) { state.bdx *= 12/spd; state.bdy *= 12/spd; }
 
-        // Scoring
         if (state.bx < 0) {
             state.s2++;
             if (state.s2 >= WIN_SCORE) state.winner = 2;
@@ -403,10 +594,7 @@ var GAME = {};
             else resetBall(-1);
         }
 
-        // Send full state to guest
         send({ t: 'gs', s: state });
-
-        // Render
         renderFrame();
         score1El.textContent = state.s1;
         score2El.textContent = state.s2;
@@ -498,7 +686,6 @@ var GAME = {};
         if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { keysDown.down = false; sendDir(); }
     });
 
-    // Periodic keepalive - resend current direction every 50ms to handle any dropped messages
     setInterval(function() {
         if (conn && conn.open) {
             send({ t: 'dir', d: myDir });
@@ -520,6 +707,11 @@ var GAME = {};
     downBtn.addEventListener('touchend', function() { setMobile(0); });
     downBtn.addEventListener('mousedown', function() { setMobile(1); });
     downBtn.addEventListener('mouseup', function() { setMobile(0); });
+
+    // === CLEANUP ON PAGE LEAVE ===
+    window.addEventListener('beforeunload', function() {
+        goOffline();
+    });
 
     // === INIT ===
     initPeer();
