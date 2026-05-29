@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pong Multiplayer</title>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; font-family: 'Segoe UI', -apple-system, sans-serif; background: #0a0a0a; color: #fff; overflow-x: hidden; }
@@ -127,7 +129,7 @@ canvas { border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background
         <div class="online-panel" id="onlinePanel">
             <h3>Online <span class="count" id="onlineCount">0</span></h3>
             <div class="online-list" id="onlineList">
-                <div class="online-empty">Searching for other players...</div>
+                <div class="online-empty">Enter your name to see who's online...</div>
             </div>
         </div>
         <div class="divider"></div>
@@ -192,6 +194,7 @@ var GAME = {};
     var gameRunning = false, gameInterval = null;
     var myDir = 0, remoteDir = 0;
     var myPeerId = '';
+    var myUid = '';
     var inGame = false;
 
     var state = { bx: W/2, by: H/2, bdx: BALL_SPEED, bdy: 2, p1y: H/2-PH/2, p2y: H/2-PH/2, s1: 0, s2: 0, winner: 0 };
@@ -208,205 +211,101 @@ var GAME = {};
     var pendingChallenger = null;
 
     // ================================================================
-    // PRESENCE SYSTEM - Uses PeerJS lobby rooms
-    // One player becomes the "lobby master" and tracks everyone.
-    // If master leaves, another player takes over.
+    // FIREBASE PRESENCE SYSTEM
+    // Uses Clever Portal's Firebase for real-time online player sync
     // ================================================================
-    var LOBBY_PREFIX = 'clever-pong-lobby-';
-    var LOBBY_SLOTS = 5; // Try 5 lobby slots
-    var lobbyMasterConn = null; // Connection TO the lobby master (if we're a client)
-    var isLobbyMaster = false;
-    var lobbyClients = {}; // lobby master: { peerId: {conn, name, status} }
-    var onlinePlayers = []; // rendered list
+    var fbConfig = {
+        apiKey: "AIzaSyDDXdE1TSzc70MZLL5XxuXoqlgixno1H6E",
+        authDomain: "chat-5e002.firebaseapp.com",
+        databaseURL: "https://chat-5e002-default-rtdb.firebaseio.com",
+        projectId: "chat-5e002",
+        storageBucket: "chat-5e002.firebasestorage.app",
+        messagingSenderId: "223458314389",
+        appId: "1:223458314389:web:59e9524e34e73482ad339c"
+    };
+
+    // Initialize Firebase (use a unique app name to avoid conflicts if parent page also uses Firebase)
+    var fbApp;
+    try {
+        fbApp = firebase.app('pong');
+    } catch(e) {
+        fbApp = firebase.initializeApp(fbConfig, 'pong');
+    }
+    var fbDb = fbApp.database();
+    var pongOnlineRef = fbDb.ref('pongOnline');
+    var myPresenceRef = null;
+    var challengeRef = null;
 
     function getMyName() {
-        return playerNameInput.value.trim() || 'Anonymous';
+        return playerNameInput.value.trim() || '';
     }
 
-    function joinLobbyNetwork() {
-        // Try to connect to existing lobby masters
-        var attempts = 0;
-        var found = false;
+    function goOnline() {
+        var name = getMyName();
+        if (!name || !myPeerId) return;
 
-        for (var i = 0; i < LOBBY_SLOTS; i++) {
-            (function(slot) {
-                var lobbyPeerId = LOBBY_PREFIX + slot;
-                if (lobbyPeerId === myPeerId) return; // skip self
-                var c = peer.connect(lobbyPeerId, { reliable: true });
-                
-                c.on('open', function() {
-                    if (found || isLobbyMaster) { c.close(); return; }
-                    found = true;
-                    lobbyMasterConn = c;
-                    // Register with the lobby master
-                    c.send(JSON.stringify({ t: 'reg', name: getMyName(), peerId: myPeerId, status: 'online' }));
+        myUid = myPeerId.replace('pong-', '');
+        myPresenceRef = pongOnlineRef.child(myUid);
+        myPresenceRef.set({
+            name: name,
+            peerId: myPeerId,
+            status: 'online',
+            ts: firebase.database.ServerValue.TIMESTAMP
+        });
+        // Auto-remove on disconnect
+        myPresenceRef.onDisconnect().remove();
 
-                    c.on('data', function(raw) {
-                        var data;
-                        try { data = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch(e) { return; }
-                        if (data.t === 'list') {
-                            onlinePlayers = data.players || [];
-                            renderOnlineList();
-                        } else if (data.t === 'challenge') {
-                            showChallengeNotification(data.from, data.fromPeerId);
-                        }
-                    });
+        // Listen for challenges directed at me
+        challengeRef = fbDb.ref('pongChallenges/' + myUid);
+        challengeRef.on('value', function(snap) {
+            var data = snap.val();
+            if (data && data.from && data.fromPeerId) {
+                showChallengeNotification(data.from, data.fromPeerId);
+                // Clear the challenge after reading
+                challengeRef.remove();
+            }
+        });
+    }
 
-                    c.on('close', function() {
-                        lobbyMasterConn = null;
-                        // Master went away, try to become master or find new one
-                        setTimeout(tryBecomeLobbyMaster, 1000 + Math.random() * 2000);
-                    });
-                });
-
-                c.on('error', function() {
-                    attempts++;
-                    if (attempts >= LOBBY_SLOTS && !found && !isLobbyMaster) {
-                        // No lobby master found, become one
-                        tryBecomeLobbyMaster();
-                    }
-                });
-            })(i);
+    function goOffline() {
+        if (myPresenceRef) {
+            myPresenceRef.remove();
+            myPresenceRef = null;
         }
-
-        // Fallback: if no connection established in 4s, become master
-        setTimeout(function() {
-            if (!lobbyMasterConn && !isLobbyMaster) {
-                tryBecomeLobbyMaster();
-            }
-        }, 4000);
-    }
-
-    function tryBecomeLobbyMaster() {
-        if (isLobbyMaster || lobbyMasterConn) return;
-        
-        // Destroy current peer and recreate with lobby prefix
-        var oldPeerId = myPeerId;
-        var slot = Math.floor(Math.random() * LOBBY_SLOTS);
-        var lobbyPeerId = LOBBY_PREFIX + slot;
-
-        // Try to create a peer with the lobby ID
-        var lobbyPeer = new Peer(lobbyPeerId, { debug: 0 });
-
-        lobbyPeer.on('open', function() {
-            // Successfully became lobby master
-            isLobbyMaster = true;
-            // Keep the game peer separate, use lobbyPeer for presence only
-            lobbyPeer.on('connection', function(c) {
-                handleLobbyClientConnection(c);
-            });
-            // Add ourselves to the list
-            broadcastPlayerList();
-        });
-
-        lobbyPeer.on('error', function(err) {
-            // Slot taken or error, try another slot
-            if (err.type === 'unavailable-id') {
-                lobbyPeer.destroy();
-                // Try to connect to that slot instead
-                var c = peer.connect(lobbyPeerId, { reliable: true });
-                c.on('open', function() {
-                    if (lobbyMasterConn) { c.close(); return; }
-                    lobbyMasterConn = c;
-                    c.send(JSON.stringify({ t: 'reg', name: getMyName(), peerId: myPeerId, status: 'online' }));
-                    c.on('data', function(raw) {
-                        var data;
-                        try { data = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch(e) { return; }
-                        if (data.t === 'list') {
-                            onlinePlayers = data.players || [];
-                            renderOnlineList();
-                        } else if (data.t === 'challenge') {
-                            showChallengeNotification(data.from, data.fromPeerId);
-                        }
-                    });
-                    c.on('close', function() {
-                        lobbyMasterConn = null;
-                        setTimeout(tryBecomeLobbyMaster, 1000 + Math.random() * 2000);
-                    });
-                });
-                c.on('error', function() {});
-            } else {
-                lobbyPeer.destroy();
-            }
-        });
-    }
-
-    function handleLobbyClientConnection(c) {
-        var clientPeerId = null;
-
-        c.on('data', function(raw) {
-            var data;
-            try { data = (typeof raw === 'string') ? JSON.parse(raw) : raw; } catch(e) { return; }
-
-            if (data.t === 'reg') {
-                clientPeerId = data.peerId;
-                lobbyClients[clientPeerId] = { conn: c, name: data.name, status: data.status || 'online' };
-                broadcastPlayerList();
-            } else if (data.t === 'status') {
-                if (clientPeerId && lobbyClients[clientPeerId]) {
-                    lobbyClients[clientPeerId].status = data.status;
-                    broadcastPlayerList();
-                }
-            } else if (data.t === 'challenge_to') {
-                // Forward challenge to target
-                var target = lobbyClients[data.targetPeerId];
-                if (target && target.conn.open) {
-                    target.conn.send(JSON.stringify({ t: 'challenge', from: data.from, fromPeerId: data.fromPeerId }));
-                }
-            }
-        });
-
-        c.on('close', function() {
-            if (clientPeerId) {
-                delete lobbyClients[clientPeerId];
-                broadcastPlayerList();
-            }
-        });
-    }
-
-    function broadcastPlayerList() {
-        var players = [];
-        // Add self (the lobby master)
-        players.push({ name: getMyName(), peerId: myPeerId, status: inGame ? 'busy' : 'online' });
-        // Add all clients
-        for (var pid in lobbyClients) {
-            players.push({ name: lobbyClients[pid].name, peerId: pid, status: lobbyClients[pid].status });
-        }
-        onlinePlayers = players;
-        renderOnlineList();
-        // Send to all clients
-        var msg = JSON.stringify({ t: 'list', players: players });
-        for (var pid in lobbyClients) {
-            try { if (lobbyClients[pid].conn.open) lobbyClients[pid].conn.send(msg); } catch(e) {}
+        if (challengeRef) {
+            challengeRef.off();
+            challengeRef = null;
         }
     }
 
-    function updateMyStatus(status) {
+    function updateStatus(status) {
         inGame = (status === 'busy');
-        if (isLobbyMaster) {
-            broadcastPlayerList();
-        } else if (lobbyMasterConn && lobbyMasterConn.open) {
-            lobbyMasterConn.send(JSON.stringify({ t: 'status', status: status }));
+        if (myPresenceRef) {
+            myPresenceRef.update({ status: status, ts: firebase.database.ServerValue.TIMESTAMP });
         }
     }
 
-    function sendChallengeViaLobby(targetPeerId) {
-        if (isLobbyMaster) {
-            // Direct send
-            var target = lobbyClients[targetPeerId];
-            if (target && target.conn.open) {
-                target.conn.send(JSON.stringify({ t: 'challenge', from: getMyName(), fromPeerId: myPeerId }));
-            }
-        } else if (lobbyMasterConn && lobbyMasterConn.open) {
-            lobbyMasterConn.send(JSON.stringify({ t: 'challenge_to', targetPeerId: targetPeerId, from: getMyName(), fromPeerId: myPeerId }));
-        }
-    }
+    // Listen for all online players
+    pongOnlineRef.on('value', function(snap) {
+        var data = snap.val() || {};
+        renderOnlineList(data);
+    });
 
-    function renderOnlineList() {
+    function renderOnlineList(data) {
         var listEl = $('onlineList');
         var countEl = $('onlineCount');
-        // Filter out self
-        var players = onlinePlayers.filter(function(p) { return p.peerId !== myPeerId; });
+        var players = [];
+        var now = Date.now();
+
+        for (var uid in data) {
+            if (uid === myUid) continue;
+            var p = data[uid];
+            if (!p || !p.name || !p.peerId) continue;
+            // Skip stale entries (>60s old)
+            if (p.ts && (now - p.ts > 60000)) continue;
+            players.push(p);
+        }
+
         countEl.textContent = players.length;
 
         if (players.length === 0) {
@@ -419,7 +318,7 @@ var GAME = {};
             var busyClass = p.status === 'busy' ? ' busy' : '';
             var btnHtml = p.status === 'busy' ?
                 '<span style="font-size:11px;color:rgba(255,255,255,.3)">In game</span>' :
-                '<button class="btn btn-challenge" onclick="GAME.challenge(\'' + p.peerId + '\')">Challenge</button>';
+                '<button class="btn btn-challenge" onclick="GAME.challenge(\'' + escapeAttr(p.peerId) + '\',\'' + escapeAttr(p.name) + '\')">Challenge</button>';
             html += '<div class="online-item' + busyClass + '"><span class="name">' + escapeHtml(p.name) + '</span>' + btnHtml + '</div>';
         });
         listEl.innerHTML = html;
@@ -431,6 +330,10 @@ var GAME = {};
         return div.innerHTML;
     }
 
+    function escapeAttr(str) {
+        return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+
     function showChallengeNotification(fromName, fromPeerId) {
         pendingChallenger = fromPeerId;
         challengeTextEl.innerHTML = '<strong>' + escapeHtml(fromName) + '</strong> wants to play!';
@@ -438,25 +341,33 @@ var GAME = {};
     }
 
     // === CHALLENGE SYSTEM ===
-    GAME.challenge = function(targetPeerId) {
+    GAME.challenge = function(targetPeerId, targetName) {
         if (conn || inGame) return;
         if (!peer || !peer.open) { alert('Still connecting...'); return; }
-        // Connect directly to the target for the game
+        var name = getMyName();
+        if (!name) { alert('Enter your name first'); return; }
+
+        // Send challenge notification via Firebase
+        var targetUid = targetPeerId.replace('pong-', '');
+        fbDb.ref('pongChallenges/' + targetUid).set({
+            from: name,
+            fromPeerId: myPeerId,
+            ts: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // Connect directly for the game
         isHost = false;
         myNum = 2;
         WIN_SCORE = parseInt(winScoreSelect.value) || 5;
         conn = peer.connect(targetPeerId, { reliable: true });
         wireConn();
-        updateMyStatus('busy');
-        // Also send challenge notification via lobby
-        sendChallengeViaLobby(targetPeerId);
+        updateStatus('busy');
     };
 
     $('acceptChallenge').addEventListener('click', function() {
         challengeToast.style.display = 'none';
-        // The challenger already connected to us via PeerJS
-        // The connection event was fired on our game peer
         pendingChallenger = null;
+        // The connection is already incoming on our peer - handled in peer.on('connection')
     });
 
     $('declineChallenge').addEventListener('click', function() {
@@ -465,25 +376,22 @@ var GAME = {};
         pendingChallenger = null;
     });
 
-    // Name change updates
-    playerNameInput.addEventListener('input', function() {
-        if (isLobbyMaster) {
-            broadcastPlayerList();
-        } else if (lobbyMasterConn && lobbyMasterConn.open) {
-            lobbyMasterConn.send(JSON.stringify({ t: 'reg', name: getMyName(), peerId: myPeerId, status: inGame ? 'busy' : 'online' }));
-        }
+    // Name change → go online
+    playerNameInput.addEventListener('change', function() {
+        if (getMyName() && myPeerId) goOnline();
+    });
+    playerNameInput.addEventListener('blur', function() {
+        if (getMyName() && myPeerId) goOnline();
     });
 
     // Expose for debugging
-    GAME.getState = function() { return { isHost: isHost, myDir: myDir, remoteDir: remoteDir, gameRunning: gameRunning, connOpen: conn && conn.open, state: state, isLobbyMaster: isLobbyMaster, onlinePlayers: onlinePlayers }; };
+    GAME.getState = function() { return { isHost: isHost, myDir: myDir, remoteDir: remoteDir, gameRunning: gameRunning, connOpen: conn && conn.open, state: state }; };
 
     // === SEND HELPER ===
     function send(obj) {
         try {
-            if (conn && conn.open) {
-                conn.send(JSON.stringify(obj));
-            }
-        } catch(e) { console.error('Send error:', e); }
+            if (conn && conn.open) conn.send(JSON.stringify(obj));
+        } catch(e) {}
     }
 
     // === PEER SETUP ===
@@ -495,25 +403,23 @@ var GAME = {};
             myPeerId = id;
             statusDot.className = 'status-dot green';
             statusText.textContent = 'Ready';
-            // Join the lobby network
-            joinLobbyNetwork();
+            // Go online if name is set
+            if (getMyName()) goOnline();
         });
 
         peer.on('connection', function(c) {
             if (conn) { c.close(); return; }
             conn = c;
-            // This is either a challenge or a code-based join
             isHost = true;
             myNum = 1;
             WIN_SCORE = parseInt(winScoreSelect.value) || 5;
             wireConn();
-            updateMyStatus('busy');
+            updateStatus('busy');
         });
 
         peer.on('error', function(err) {
             if (err.type === 'peer-unavailable') alert('Player not found or offline.');
             else if (err.type === 'unavailable-id') setTimeout(initPeer, 500);
-            else console.error('Peer error:', err);
         });
 
         peer.on('disconnected', function() {
@@ -534,14 +440,12 @@ var GAME = {};
         conn.on('close', function() {
             gameRunning = false;
             stopGameLoop();
-            updateMyStatus('online');
+            updateStatus('online');
             alert('Opponent disconnected.');
             backToLobby();
         });
 
-        conn.on('error', function(err) {
-            console.error('Conn error:', err);
-        });
+        conn.on('error', function(err) {});
 
         function onOpen() {
             send({ t: 'hi', name: getMyName(), winScore: WIN_SCORE });
@@ -552,11 +456,8 @@ var GAME = {};
             }
         }
 
-        if (conn.open) {
-            onOpen();
-        } else {
-            conn.on('open', onOpen);
-        }
+        if (conn.open) { onOpen(); }
+        else { conn.on('open', onOpen); }
     }
 
     function onData(data) {
@@ -601,13 +502,15 @@ var GAME = {};
     // === LOBBY UI ===
     $('createBtn').addEventListener('click', function() {
         if (!peer || !peer.open) { alert('Still connecting...'); return; }
+        var name = getMyName();
+        if (!name) { alert('Enter your name first'); return; }
         isHost = true;
         myNum = 1;
         WIN_SCORE = parseInt(winScoreSelect.value) || 5;
         lobbyCodeEl.textContent = peer.id.replace('pong-', '').toUpperCase();
         lobbyScreen.style.display = 'none';
         waitingScreen.style.display = 'flex';
-        updateMyStatus('busy');
+        updateStatus('busy');
     });
 
     lobbyCodeEl.addEventListener('click', function() {
@@ -626,13 +529,13 @@ var GAME = {};
         WIN_SCORE = parseInt(winScoreSelect.value) || 5;
         conn = peer.connect('pong-' + code, { reliable: true });
         wireConn();
-        updateMyStatus('busy');
+        updateStatus('busy');
     });
 
     $('cancelBtn').addEventListener('click', function() {
         if (conn) conn.close();
         conn = null;
-        updateMyStatus('online');
+        updateStatus('online');
         backToLobby();
     });
 
@@ -649,7 +552,7 @@ var GAME = {};
     $('leaveBtn').addEventListener('click', function() {
         if (conn) conn.close();
         conn = null;
-        updateMyStatus('online');
+        updateStatus('online');
         backToLobby();
     });
 
@@ -667,7 +570,7 @@ var GAME = {};
     function startNewGame() {
         resetState();
         gameRunning = true;
-        p1Label.textContent = getMyName();
+        p1Label.textContent = getMyName() || 'Player 1';
         $('gameFooter').textContent = 'Use W/S or Arrow Keys to move | First to ' + WIN_SCORE + ' wins';
         showGame();
         gameOverOverlay.style.display = 'none';
@@ -788,11 +691,6 @@ var GAME = {};
         conn = null; gameRunning = false; remoteDir = 0; myDir = 0;
         stopGameLoop();
         if (peer) peer.destroy();
-        isLobbyMaster = false;
-        lobbyMasterConn = null;
-        lobbyClients = {};
-        onlinePlayers = [];
-        renderOnlineList();
         setTimeout(initPeer, 300);
     }
 
@@ -824,9 +722,7 @@ var GAME = {};
     });
 
     setInterval(function() {
-        if (conn && conn.open) {
-            send({ t: 'dir', d: myDir });
-        }
+        if (conn && conn.open) send({ t: 'dir', d: myDir });
     }, 50);
 
     // Mobile controls
@@ -844,6 +740,9 @@ var GAME = {};
     downBtn.addEventListener('touchend', function() { setMobile(0); });
     downBtn.addEventListener('mousedown', function() { setMobile(1); });
     downBtn.addEventListener('mouseup', function() { setMobile(0); });
+
+    // === CLEANUP ===
+    window.addEventListener('beforeunload', function() { goOffline(); });
 
     // === INIT ===
     initPeer();
