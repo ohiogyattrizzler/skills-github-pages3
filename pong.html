@@ -111,9 +111,10 @@ canvas { border: 1px solid rgba(255,255,255,.15); border-radius: 8px; background
     <div class="lobby-screen" id="lobbyScreen">
         <h1>PONG<span>MULTIPLAYER</span></h1>
         <p class="status-msg"><span class="status-dot yellow" id="statusDot"></span><span id="statusText">Connecting...</span></p>
-        <div class="input-group">
+        <div class="input-group" id="nameInputGroup">
             <input type="text" id="playerName" placeholder="Your name" maxlength="16">
         </div>
+        <p id="loggedInAs" style="display:none;font-size:13px;color:rgba(255,255,255,.6)">Logged in as: <strong id="loggedInName" style="color:#00ff88"></strong></p>
         <div class="input-group">
             <select id="winScore">
                 <option value="3">First to 3</option>
@@ -213,6 +214,7 @@ var GAME = {};
     // ================================================================
     // FIREBASE PRESENCE SYSTEM
     // Uses Clever Portal's Firebase for real-time online player sync
+    // Reads onlineUsers (portal logins) + pongOnline (game players)
     // ================================================================
     var fbConfig = {
         apiKey: "AIzaSyDDXdE1TSzc70MZLL5XxuXoqlgixno1H6E",
@@ -233,11 +235,45 @@ var GAME = {};
     }
     var fbDb = fbApp.database();
     var pongOnlineRef = fbDb.ref('pongOnline');
+    var portalOnlineRef = fbDb.ref('onlineUsers');
     var myPresenceRef = null;
     var challengeRef = null;
+    var autoName = '';
+    var portalUsers = {};
+
+    // Auto-detect user from URL param or postMessage from parent
+    (function detectUser() {
+        // Check URL params: ?user=Name
+        var params = new URLSearchParams(window.location.search);
+        var urlUser = params.get('user');
+        if (urlUser) {
+            autoName = decodeURIComponent(urlUser);
+            applyAutoName();
+        }
+        // Listen for postMessage from parent page (Clever Portal)
+        window.addEventListener('message', function(e) {
+            if (e.data && e.data.type === 'pong-user' && e.data.name) {
+                autoName = e.data.name;
+                applyAutoName();
+            }
+        });
+        // Ask parent for user info
+        try { window.parent.postMessage({ type: 'pong-get-user' }, '*'); } catch(ex) {}
+    })();
+
+    function applyAutoName() {
+        if (autoName) {
+            playerNameInput.value = autoName;
+            $('nameInputGroup').style.display = 'none';
+            $('loggedInAs').style.display = 'block';
+            $('loggedInName').textContent = autoName;
+            // Auto go online
+            if (myPeerId) goOnline();
+        }
+    }
 
     function getMyName() {
-        return playerNameInput.value.trim() || '';
+        return autoName || playerNameInput.value.trim() || '';
     }
 
     function goOnline() {
@@ -285,25 +321,45 @@ var GAME = {};
         }
     }
 
-    // Listen for all online players
+    // Listen for all online pong players
     pongOnlineRef.on('value', function(snap) {
-        var data = snap.val() || {};
-        renderOnlineList(data);
+        var pongData = snap.val() || {};
+        renderOnlineList(pongData);
     });
 
-    function renderOnlineList(data) {
+    // Also listen for portal online users (to show who's on Clever Portal)
+    portalOnlineRef.on('value', function(snap) {
+        portalUsers = snap.val() || {};
+        // Re-render with latest pong data
+        pongOnlineRef.once('value', function(pSnap) {
+            renderOnlineList(pSnap.val() || {});
+        });
+    });
+
+    function renderOnlineList(pongData) {
         var listEl = $('onlineList');
         var countEl = $('onlineCount');
         var players = [];
+        var pongPeerIds = {};
         var now = Date.now();
 
-        for (var uid in data) {
+        // First collect pong players (they have peerId for challenging)
+        for (var uid in pongData) {
             if (uid === myUid) continue;
-            var p = data[uid];
+            var p = pongData[uid];
             if (!p || !p.name || !p.peerId) continue;
-            // Skip stale entries (>60s old)
             if (p.ts && (now - p.ts > 60000)) continue;
-            players.push(p);
+            players.push({ name: p.name, peerId: p.peerId, status: p.status, inPong: true });
+            pongPeerIds[p.name.toLowerCase()] = true;
+        }
+
+        // Then add portal users who aren't already in pong
+        for (var role in portalUsers) {
+            var pu = portalUsers[role];
+            if (!pu || !pu.name) continue;
+            if (pu.name.toLowerCase() === getMyName().toLowerCase()) continue;
+            if (pongPeerIds[pu.name.toLowerCase()]) continue;
+            players.push({ name: pu.name, peerId: null, status: 'portal', inPong: false });
         }
 
         countEl.textContent = players.length;
@@ -315,11 +371,15 @@ var GAME = {};
 
         var html = '';
         players.forEach(function(p) {
-            var busyClass = p.status === 'busy' ? ' busy' : '';
-            var btnHtml = p.status === 'busy' ?
-                '<span style="font-size:11px;color:rgba(255,255,255,.3)">In game</span>' :
-                '<button class="btn btn-challenge" onclick="GAME.challenge(\'' + escapeAttr(p.peerId) + '\',\'' + escapeAttr(p.name) + '\')">Challenge</button>';
-            html += '<div class="online-item' + busyClass + '"><span class="name">' + escapeHtml(p.name) + '</span>' + btnHtml + '</div>';
+            if (p.inPong) {
+                var busyClass = p.status === 'busy' ? ' busy' : '';
+                var btnHtml = p.status === 'busy' ?
+                    '<span style="font-size:11px;color:rgba(255,255,255,.3)">In game</span>' :
+                    '<button class="btn btn-challenge" onclick="GAME.challenge(\'' + escapeAttr(p.peerId) + '\',\'' + escapeAttr(p.name) + '\')">Challenge</button>';
+                html += '<div class="online-item' + busyClass + '"><span class="name">' + escapeHtml(p.name) + '</span>' + btnHtml + '</div>';
+            } else {
+                html += '<div class="online-item"><span class="name">' + escapeHtml(p.name) + '</span><span style="font-size:11px;color:rgba(255,255,255,.3)">On Portal</span></div>';
+            }
         });
         listEl.innerHTML = html;
     }
@@ -382,6 +442,9 @@ var GAME = {};
     });
     playerNameInput.addEventListener('blur', function() {
         if (getMyName() && myPeerId) goOnline();
+    });
+    playerNameInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && getMyName() && myPeerId) goOnline();
     });
 
     // Expose for debugging
