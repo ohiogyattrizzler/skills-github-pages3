@@ -241,6 +241,7 @@ var GAME = {};
     var myPresenceRef = null;
     var challengeRef = null;
     var autoName = '';
+    var myRole = '';
     var portalUsers = {};
     var fbReady = false;
 
@@ -257,17 +258,20 @@ var GAME = {};
 
     // Auto-detect user from URL param or postMessage from parent
     (function detectUser() {
-        // Check URL params: ?user=Name
+        // Check URL params: ?user=Name&role=Role
         var params = new URLSearchParams(window.location.search);
         var urlUser = params.get('user');
+        var urlRole = params.get('role');
         if (urlUser) {
             autoName = decodeURIComponent(urlUser);
+            if (urlRole) myRole = decodeURIComponent(urlRole);
             applyAutoName();
         }
         // Listen for postMessage from parent page (Clever Portal)
         window.addEventListener('message', function(e) {
-            if (e.data && e.data.type === 'pong-user' && e.data.name) {
-                autoName = e.data.name;
+            if (e.data && e.data.type === 'pong-user') {
+                if (e.data.name) { autoName = e.data.name; }
+                if (e.data.role) { myRole = e.data.role; }
                 applyAutoName();
             }
         });
@@ -305,16 +309,27 @@ var GAME = {};
         // Auto-remove on disconnect
         myPresenceRef.onDisconnect().remove();
 
-        // Listen for challenges directed at me
+        // Listen for challenges directed at me (by PeerJS uid)
         challengeRef = fbDb.ref('pongChallenges/' + myUid);
         challengeRef.on('value', function(snap) {
             var data = snap.val();
             if (data && data.from && data.fromPeerId) {
                 showChallengeNotification(data.from, data.fromPeerId);
-                // Clear the challenge after reading
                 challengeRef.remove();
             }
         });
+
+        // Also listen for challenges by role (from portal users)
+        if (myRole) {
+            var roleRef = fbDb.ref('pongChallenges/' + myRole);
+            roleRef.on('value', function(snap) {
+                var data = snap.val();
+                if (data && data.from && data.fromPeerId) {
+                    showChallengeNotification(data.from, data.fromPeerId);
+                    roleRef.remove();
+                }
+            });
+        }
     }
 
     function goOffline() {
@@ -375,7 +390,7 @@ var GAME = {};
             if (!pu || !pu.name) continue;
             if (pu.name.toLowerCase() === getMyName().toLowerCase()) continue;
             if (pongPeerIds[pu.name.toLowerCase()]) continue;
-            players.push({ name: pu.name, peerId: null, status: 'portal', inPong: false });
+            players.push({ name: pu.name, peerId: null, status: 'portal', inPong: false, role: role });
         }
 
         countEl.textContent = players.length;
@@ -394,7 +409,8 @@ var GAME = {};
                     '<button class="btn btn-challenge" onclick="GAME.challenge(\'' + escapeAttr(p.peerId) + '\',\'' + escapeAttr(p.name) + '\')">Challenge</button>';
                 html += '<div class="online-item' + busyClass + '"><span class="name">' + escapeHtml(p.name) + '</span>' + btnHtml + '</div>';
             } else {
-                html += '<div class="online-item"><span class="name">' + escapeHtml(p.name) + '</span><span style="font-size:11px;color:rgba(255,255,255,.3)">On Portal</span></div>';
+                var challengeBtn = '<button class="btn btn-challenge" onclick="GAME.challengePortal(\'' + escapeAttr(p.role || '') + '\',\'' + escapeAttr(p.name) + '\')">Challenge</button>';
+                html += '<div class="online-item"><span class="name">' + escapeHtml(p.name) + ' <span style="font-size:10px;color:rgba(255,255,255,.25)">(portal)</span></span>' + challengeBtn + '</div>';
             }
         });
         listEl.innerHTML = html;
@@ -438,6 +454,23 @@ var GAME = {};
         conn = peer.connect(targetPeerId, { reliable: true });
         wireConn();
         updateStatus('busy');
+    };
+
+    // Challenge a portal user (who may not have pong open yet)
+    GAME.challengePortal = function(targetRole, targetName) {
+        if (conn || inGame) return;
+        if (!peer || !peer.open) { alert('Still connecting...'); return; }
+        var name = getMyName();
+        if (!name) { alert('Enter your name first'); return; }
+
+        // Write challenge to Firebase by role (portal users are identified by role)
+        fbDb.ref('pongChallenges/' + targetRole).set({
+            from: name,
+            fromPeerId: myPeerId,
+            ts: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        alert('Challenge sent to ' + targetName + '! They will see it when they open the game.');
     };
 
     $('acceptChallenge').addEventListener('click', function() {
