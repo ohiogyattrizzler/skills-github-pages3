@@ -7,6 +7,7 @@
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; font-family: 'Segoe UI', -apple-system, sans-serif; background: #0a0a0a; color: #fff; overflow-x: hidden; }
@@ -234,12 +235,25 @@ var GAME = {};
         fbApp = firebase.initializeApp(fbConfig, 'pong');
     }
     var fbDb = fbApp.database();
+    var fbAuth = fbApp.auth();
     var pongOnlineRef = fbDb.ref('pongOnline');
     var portalOnlineRef = fbDb.ref('onlineUsers');
     var myPresenceRef = null;
     var challengeRef = null;
     var autoName = '';
     var portalUsers = {};
+    var fbReady = false;
+
+    // Sign in anonymously so we can read/write Firebase
+    fbAuth.signInAnonymously().then(function() {
+        fbReady = true;
+        startFirebaseListeners();
+        if (getMyName() && myPeerId) goOnline();
+    }).catch(function(err) {
+        // Fallback: try without auth (might work if rules are open)
+        fbReady = true;
+        startFirebaseListeners();
+    });
 
     // Auto-detect user from URL param or postMessage from parent
     (function detectUser() {
@@ -321,20 +335,22 @@ var GAME = {};
         }
     }
 
-    // Listen for all online pong players
-    pongOnlineRef.on('value', function(snap) {
-        var pongData = snap.val() || {};
-        renderOnlineList(pongData);
-    });
-
-    // Also listen for portal online users (to show who's on Clever Portal)
-    portalOnlineRef.on('value', function(snap) {
-        portalUsers = snap.val() || {};
-        // Re-render with latest pong data
-        pongOnlineRef.once('value', function(pSnap) {
-            renderOnlineList(pSnap.val() || {});
+    function startFirebaseListeners() {
+        // Listen for all online pong players
+        pongOnlineRef.on('value', function(snap) {
+            var pongData = snap.val() || {};
+            renderOnlineList(pongData);
         });
-    });
+
+        // Also listen for portal online users (to show who's on Clever Portal)
+        portalOnlineRef.on('value', function(snap) {
+            portalUsers = snap.val() || {};
+            // Re-render with latest pong data
+            pongOnlineRef.once('value', function(pSnap) {
+                renderOnlineList(pSnap.val() || {});
+            });
+        });
+    }
 
     function renderOnlineList(pongData) {
         var listEl = $('onlineList');
